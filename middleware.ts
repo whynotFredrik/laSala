@@ -15,7 +15,9 @@ export const config = {
   matcher: [
     "/((?!_next/static|_next/image|favicon.ico|api|auth|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|webmanifest)$).*)",
   ],
-  runtime: "nodejs" as const,
+  // Plain string — Next's middleware-config static analyzer rejects
+  // `as const` assertions here.
+  runtime: "nodejs",
 }
 
 export function middleware(request: NextRequest) {

@@ -88,9 +88,9 @@ export async function sendEmail<T extends TemplateId>(
     return { ok: true }
   } catch (err) {
     const message = err instanceof Error ? err.message : "unknown"
-    await service
-      .from("email_log")
-      .insert({
+    // Best-effort log; if even this fails we just drop the breadcrumb.
+    try {
+      await service.from("email_log").insert({
         user_id: args.userId ?? null,
         to_email: args.to,
         subject: rendered.subject,
@@ -98,8 +98,9 @@ export async function sendEmail<T extends TemplateId>(
         status: "error",
         error: message,
       })
-      .then(() => undefined)
-      .catch(() => undefined)
+    } catch {
+      // ignore
+    }
     return { ok: false, error: message }
   }
 }

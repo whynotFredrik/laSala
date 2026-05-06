@@ -140,10 +140,20 @@ Work top-to-bottom. Each task is sized to be a single focused Claude Code sessio
 
 ## Phase 9 — Public + PWA
 
-- [ ] **9.1 Landing page.** `app/(marketing)/page.tsx` — hero, services list, contact, Instagram embed, Google Maps. Use copy + assets from `assets/business-constants.ts`.
-- [ ] **9.2 Sitemap + robots.**
-- [ ] **9.3 PWA manifest.** `public/manifest.json` with name, theme color, icons. Install prompt component.
-- [ ] **9.4 Offline shell.** Minimal service worker (next-pwa) so the app icon launches the cached shell when offline.
+- [x] **9.1 Landing page.** `app/(marketing)/page.tsx` — hero, services list, contact, Instagram embed, Google Maps. Use copy + assets from `assets/business-constants.ts`.
+  - _Lives at `app/page.tsx` (root, not in a route group). Server-renders the user state so logged-in members see "Contul tău" instead of the auth buttons._
+  - _Maps is a link out to Google Maps rather than an embed — keeps the page fast and avoids needing a Maps API key._
+  - _The `LocaleTester` smoke component from Phase 0.6 was orphaned by this change but left in `components/` for reference; nothing imports it anymore._
+- [x] **9.2 Sitemap + robots.**
+  - _`app/sitemap.ts` lists only the public surface (/, /sign-up, /sign-in). `app/robots.ts` allows those + /forgot-password and disallows /admin, all member routes, /api, /auth, and /reset-password._
+- [x] **9.3 PWA manifest.** `public/manifest.json` with name, theme color, icons. Install prompt component.
+  - _`app/manifest.ts` (Next.js metadata route — generates `/manifest.webmanifest` automatically). `start_url` is `/home` so launching the installed app drops members straight into the authenticated experience._
+  - _`<InstallPrompt>` mounted in the root layout listens for `beforeinstallprompt`. iOS gets a fallback hint since Safari doesn't fire that event._
+  - _Placeholder `public/icon.svg` exists; replace with a real logo before launch and add `icon-192.png`, `icon-512.png`, `icon-maskable-512.png` to satisfy Android home-screen requirements._
+- [x] **9.4 Offline shell.** Minimal service worker (next-pwa) so the app icon launches the cached shell when offline.
+  - _Hand-rolled `public/sw.js` — chose this over `next-pwa` because the latter doesn't play well with Next 15 + Turbopack._
+  - _Strategy: cache `/offline.html`, the icon, and the manifest on install; navigation requests fall back to the offline shell when fetch fails; static `/_next/static/*` assets are cache-first with background refresh; HTML, `/api/*`, and `/auth/*` are never cached._
+  - _Registered via `<RegisterSW>` only in production — registering in dev causes Turbopack caching weirdness._
 
 ## Phase 10 — Pre-launch
 

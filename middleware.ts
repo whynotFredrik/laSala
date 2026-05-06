@@ -1,13 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server"
 
 /**
- * Edge middleware. Pure cookie-presence routing — does NOT import any of our
- * own modules so the Edge bundle stays minimal and we sidestep any
- * `__dirname` / Node-API reference that may live in transitive deps.
+ * Middleware. Runs on the Node.js runtime (opted in via
+ * `experimental.nodeMiddleware` in `next.config.ts`) so that the next-intl
+ * plugin's bundle transform — which references `__dirname` — works.
  *
+ * Strategy is still the same lightweight cookie-presence routing.
  * Authoritative auth/role checks happen in server components
- * (`lib/auth/get-user.ts` → `requireUser` / `requireAdmin`) which run in
- * Node runtime where `@supabase/ssr` works fine.
+ * (`lib/auth/get-user.ts` → `requireUser` / `requireAdmin`).
  */
 
 export const config = {
@@ -15,6 +15,7 @@ export const config = {
   matcher: [
     "/((?!_next/static|_next/image|favicon.ico|api|auth|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|webmanifest)$).*)",
   ],
+  runtime: "nodejs" as const,
 }
 
 export function middleware(request: NextRequest) {

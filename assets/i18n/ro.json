@@ -1,0 +1,117 @@
+{
+  "auth": {
+    "welcomeTitle": "Bine ai venit la Lasala Fitness Studio",
+    "welcomeSubtitle": "Rezervă și urmărește-ți sesiunile de fitness",
+    "login": "Autentificare",
+    "register": "Înregistrare",
+    "email": "Email",
+    "password": "Parolă",
+    "name": "Nume",
+    "phone": "Telefon",
+    "loginWithGoogle": "Autentifică-te cu Google",
+    "or": "SAU",
+    "dontHaveAccount": "Nu ai cont?",
+    "alreadyHaveAccount": "Ai deja cont?",
+    "logout": "Deconectare"
+  },
+  "nav": {
+    "home": "Acasă",
+    "book": "Rezervă",
+    "history": "Istoric",
+    "profile": "Profil"
+  },
+  "home": {
+    "greeting": "Salut",
+    "yourPlan": "Planul tău",
+    "sessionsRemaining": "sesiuni rămase",
+    "noActivePlan": "Niciun plan activ",
+    "planExpired": "Plan expirat",
+    "upcomingBookings": "Rezervări viitoare",
+    "noUpcomingBookings": "Nu ai rezervări viitoare",
+    "bookNow": "Rezervă acum"
+  },
+  "booking": {
+    "availableSessions": "Sesiuni disponibile",
+    "bookSession": "Rezervă sesiune",
+    "cancel": "Anulează",
+    "confirm": "Confirmă",
+    "capacity": "Capacitate",
+    "spotsLeft": "locuri libere",
+    "full": "Complet",
+    "alreadyBooked": "Deja rezervat pentru această zi",
+    "bookingSuccess": "Rezervare confirmată!",
+    "bookingError": "Eroare la rezervare",
+    "cancelBooking": "Anulează rezervarea",
+    "rescheduleBooking": "Reprogramează",
+    "cancelSuccess": "Rezervare anulată",
+    "rescheduleSuccess": "Rezervare reprogramată",
+    "booked": "Rezervat"
+  },
+  "historyPage": {
+    "bookingHistory": "Istoric rezervări",
+    "completed": "Completat",
+    "cancelled": "Anulat",
+    "noHistory": "Niciun istoric"
+  },
+  "profile": {
+    "myProfile": "Profilul meu",
+    "planDetails": "Detalii plan",
+    "planType": "Tip plan",
+    "sessionsPerMonth": "sesiuni/lună",
+    "sessionsUsed": "Sesiuni folosite",
+    "planExpires": "Planul expiră",
+    "renewPlan": "Reînnoiește planul",
+    "language": "Limbă",
+    "selectLanguage": "Selectează limba"
+  },
+  "admin": {
+    "admin": "Administrator",
+    "users": "Utilizatori",
+    "classes": "Cursuri",
+    "sessions": "Sesiuni",
+    "analytics": "Analiză",
+    "totalUsers": "Total utilizatori",
+    "activePlans": "Planuri active",
+    "bookingsThisMonth": "Rezervări luna aceasta",
+    "revenueThisMonth": "Venituri luna aceasta",
+    "addUser": "Adaugă utilizator",
+    "editUser": "Editează utilizator",
+    "addClass": "Adaugă curs",
+    "addSession": "Adaugă sesiune",
+    "adminDashboard": "Panou Admin"
+  },
+  "payment": {
+    "choosePlan": "Alege-ți planul",
+    "selectPlan": "Selectează plan",
+    "proceedToPayment": "Continuă la plată",
+    "paymentSuccess": "Plată realizată cu succes!",
+    "paymentCancelled": "Plată anulată"
+  },
+  "settings": {
+    "changePassword": "Schimbă parola",
+    "freezeMembership": "Înghețare abonament",
+    "unfreezeMembership": "Dezgheață",
+    "currentPassword": "Parola curentă",
+    "newPassword": "Parola nouă",
+    "confirmNewPassword": "Confirmă parola nouă",
+    "freezeDays": "Durată (3-14 zile)",
+    "freezeStartDate": "Data de început (minim 2 zile de acum)",
+    "freezeAvailable": "Disponibil",
+    "days": "zile"
+  },
+  "days": {
+    "monday": "Luni",
+    "tuesday": "Marți",
+    "wednesday": "Miercuri",
+    "thursday": "Joi",
+    "friday": "Vineri",
+    "saturday": "Sâmbătă",
+    "sunday": "Duminică"
+  },
+  "errors": {
+    "error": "Eroare",
+    "tryAgain": "Încearcă din nou",
+    "somethingWentWrong": "Ceva nu a mers bine",
+    "noInternetConnection": "Fără conexiune la internet"
+  }
+}

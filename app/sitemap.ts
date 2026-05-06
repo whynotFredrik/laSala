@@ -1,7 +1,8 @@
 import type { MetadataRoute } from "next"
 
-const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://lasalastudio.ro"
+import { siteUrl } from "@/lib/constants"
+
+const SITE_URL = siteUrl()
 
 /**
  * Public sitemap. Member and admin pages are gated by middleware and don't

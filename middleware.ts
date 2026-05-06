@@ -1,6 +1,10 @@
 import type { NextRequest } from "next/server"
 
-import { updateSession } from "@/lib/supabase/middleware"
+// Relative import — Vercel's Edge bundler doesn't always resolve the `@/`
+// alias from the root middleware boundary. The alias works fine inside
+// app/, components/, etc.; it's specifically the middleware compilation
+// step that has trouble.
+import { updateSession } from "./lib/supabase/middleware"
 
 export async function middleware(request: NextRequest) {
   return await updateSession(request)

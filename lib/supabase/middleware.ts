@@ -1,7 +1,9 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 
-import type { Database } from "@/lib/supabase/database.types"
+// Relative path so the Vercel Edge bundler doesn't choke on the `@/` alias
+// when tracing imports from the middleware boundary.
+import type { Database } from "./database.types"
 
 /**
  * Refreshes the Supabase auth session on every request and forwards the

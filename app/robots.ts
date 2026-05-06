@@ -1,7 +1,8 @@
 import type { MetadataRoute } from "next"
 
-const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://lasalastudio.ro"
+import { siteUrl } from "@/lib/constants"
+
+const SITE_URL = siteUrl()
 
 /**
  * robots.txt: search engines may crawl the public marketing surface but we

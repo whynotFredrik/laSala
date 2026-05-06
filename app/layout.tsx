@@ -5,6 +5,7 @@ import { getLocale, getMessages } from "next-intl/server"
 
 import { InstallPrompt } from "@/components/marketing/install-prompt"
 import { RegisterSW } from "@/components/marketing/register-sw"
+import { siteUrl } from "@/lib/constants"
 
 import "./globals.css"
 
@@ -18,11 +19,8 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 })
 
-const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://lasalastudio.ro"
-
 export const metadata: Metadata = {
-  metadataBase: new URL(SITE_URL),
+  metadataBase: new URL(siteUrl()),
   title: {
     default: "Lasala Fitness Studio",
     template: "%s · Lasala Fitness Studio",

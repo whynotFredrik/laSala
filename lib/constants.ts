@@ -42,6 +42,18 @@ export const RULES = {
 } as const
 
 /**
+ * Site URL helper. Some env-var setups omit the scheme — return a
+ * well-formed URL string regardless. Use this anywhere we'd otherwise call
+ * `new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "...")`.
+ */
+export function siteUrl(): string {
+  const raw =
+    (process.env.NEXT_PUBLIC_SITE_URL ?? "https://lasalastudio.ro").trim()
+  if (/^https?:\/\//i.test(raw)) return raw.replace(/\/$/, "")
+  return `https://${raw}`.replace(/\/$/, "")
+}
+
+/**
  * Bank transfer details for plan payment instructions.
  * TODO: replace placeholders with real values before launch.
  */

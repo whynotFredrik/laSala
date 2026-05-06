@@ -39,3 +39,5 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+.claude/worktrees/stupefied-ride-6c2b84/
+.claude/worktrees/gallant-noether-40fa3b/

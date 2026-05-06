@@ -1,60 +1,30 @@
-import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 
-// Relative path so the Vercel Edge bundler doesn't choke on the `@/` alias
-// when tracing imports from the middleware boundary.
-import type { Database } from "./database.types"
-
 /**
- * Refreshes the Supabase auth session on every request and forwards the
- * (possibly rotated) cookies on the response. Also enforces route gating:
+ * Lightweight route gating for middleware. Runs in Vercel's Edge runtime,
+ * which excludes Node-only APIs (no `__dirname`, no `fs`, etc.). For that
+ * reason we deliberately do NOT import `@supabase/ssr` here — its current
+ * transitive dependency graph trips on `__dirname` when bundled for Edge.
  *
- * - /sign-in, /sign-up, /forgot-password, /reset-password are public; an
- *   already-authenticated user is bounced to /home.
- * - /home, /book, /history, /progress, /profile, /plans, /admin/* require
- *   a session; unauthenticated requests are redirected to /sign-in.
- * - /admin/* additionally requires the caller's profiles.role === 'admin'.
+ * Strategy:
  *
- * Per CLAUDE.md hard rule #2, role is read from the database with the user's
- * own session, not trusted from the client.
+ * - Cheap cookie-presence check tells us whether *some* Supabase session
+ *   cookie is set. That's enough to redirect anonymous users away from
+ *   protected routes and authenticated users away from auth pages.
+ * - Real validation (decoding the JWT, role lookup, RLS) happens in server
+ *   components and server actions where `@supabase/ssr` works fine —
+ *   `lib/auth/get-user.ts` (`requireUser` / `requireAdmin`) is the
+ *   authoritative gate.
+ *
+ * This is consistent with CLAUDE.md hard rule #2 — we never trust the
+ * client; the cookie just hints at "is signed in" so we don't even bounce
+ * back to the login page mid-flow. The role check still happens
+ * server-side, in `app/admin/layout.tsx`.
  */
 export async function updateSession(request: NextRequest) {
-  let response = NextResponse.next({ request })
-
-  const supabase = createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          for (const { name, value } of cookiesToSet) {
-            request.cookies.set(name, value)
-          }
-          response = NextResponse.next({ request })
-          for (const { name, value, options } of cookiesToSet) {
-            response.cookies.set(name, value, options)
-          }
-        },
-      },
-    },
-  )
-
-  // IMPORTANT: do not run any Supabase code between createServerClient and
-  // getUser — it triggers session refresh which writes the rotated cookies.
-  //
-  // We access getUser through a small inline type to avoid a Vercel
-  // edge-build type-resolution quirk where `supabase.auth` widens to a
-  // SupabaseAuthClient that doesn't expose getUser. The runtime method is
-  // there in every version we ship; this is a typing-only workaround.
-  const auth = supabase.auth as unknown as {
-    getUser: () => Promise<{ data: { user: { id: string } | null } }>
-  }
-  const {
-    data: { user },
-  } = await auth.getUser()
+  const hasSession = request.cookies
+    .getAll()
+    .some((c) => c.name.startsWith("sb-") && c.name.endsWith("-auth-token"))
 
   const { pathname } = request.nextUrl
 
@@ -73,10 +43,8 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith("/plans") ||
     pathname.startsWith("/admin")
 
-  const isAdminRoute = pathname.startsWith("/admin")
-
   // Logged-in users hitting auth pages → home
-  if (user && isAuthRoute) {
+  if (hasSession && isAuthRoute) {
     const url = request.nextUrl.clone()
     url.pathname = "/home"
     url.search = ""
@@ -84,28 +52,12 @@ export async function updateSession(request: NextRequest) {
   }
 
   // Anonymous users hitting protected routes → sign-in (with redirect-back)
-  if (!user && isProtectedRoute) {
+  if (!hasSession && isProtectedRoute) {
     const url = request.nextUrl.clone()
     url.pathname = "/sign-in"
     url.searchParams.set("next", pathname)
     return NextResponse.redirect(url)
   }
 
-  // Admin guard — re-check role server-side, never trust the client
-  if (user && isAdminRoute) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single()
-
-    if (profile?.role !== "admin") {
-      const url = request.nextUrl.clone()
-      url.pathname = "/home"
-      url.search = ""
-      return NextResponse.redirect(url)
-    }
-  }
-
-  return response
+  return NextResponse.next()
 }

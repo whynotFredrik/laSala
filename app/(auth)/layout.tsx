@@ -3,6 +3,10 @@ import type { ReactNode } from "react"
 /**
  * Layout for unauthenticated routes (sign-in, sign-up, forgot-password,
  * reset-password). Centers a single card on screen.
+ *
+ * "If logged in, redirect to /home" is enforced per-page (in sign-in,
+ * sign-up, forgot-password) rather than here, because /reset-password
+ * deliberately runs with an authenticated recovery session.
  */
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (

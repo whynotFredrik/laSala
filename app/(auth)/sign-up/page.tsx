@@ -9,9 +9,12 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 
+import { redirectIfSignedIn } from "@/lib/auth/redirect-if-signed-in"
+
 import { SignUpForm } from "./sign-up-form"
 
 export default async function SignUpPage() {
+  await redirectIfSignedIn()
   const t = await getTranslations("auth")
 
   return (

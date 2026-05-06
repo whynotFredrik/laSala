@@ -8,6 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { redirectIfSignedIn } from "@/lib/auth/redirect-if-signed-in"
 
 import { SignInForm } from "./sign-in-form"
 
@@ -16,6 +17,7 @@ export default async function SignInPage({
 }: {
   searchParams: Promise<{ next?: string }>
 }) {
+  await redirectIfSignedIn()
   const t = await getTranslations("auth")
   const { next } = await searchParams
 

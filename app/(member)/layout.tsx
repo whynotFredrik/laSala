@@ -2,12 +2,19 @@ import type { ReactNode } from "react"
 
 import { MemberNav } from "@/components/member/member-nav"
 import { Toaster } from "@/components/ui/sonner"
+import { requireUser } from "@/lib/auth/get-user"
 
 /**
- * Shell for the (member) route group. Middleware already gated access — by
- * the time we render here, we know there's an authenticated user.
+ * Shell for the (member) route group. We `requireUser()` here as the
+ * authoritative auth gate for every authenticated page. If the visitor
+ * isn't signed in, `requireUser` redirects them to /sign-in.
  */
-export default function MemberLayout({ children }: { children: ReactNode }) {
+export default async function MemberLayout({
+  children,
+}: {
+  children: ReactNode
+}) {
+  await requireUser()
   return (
     <div className="min-h-screen bg-muted/20">
       <MemberNav />

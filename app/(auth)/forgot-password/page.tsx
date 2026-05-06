@@ -9,9 +9,12 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 
+import { redirectIfSignedIn } from "@/lib/auth/redirect-if-signed-in"
+
 import { ForgotPasswordForm } from "./forgot-password-form"
 
 export default async function ForgotPasswordPage() {
+  await redirectIfSignedIn()
   const t = await getTranslations("auth")
 
   return (

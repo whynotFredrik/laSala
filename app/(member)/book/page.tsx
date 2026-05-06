@@ -1,0 +1,152 @@
+import { format, isAfter, parseISO } from "date-fns"
+import { ro } from "date-fns/locale"
+import { getTranslations } from "next-intl/server"
+
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { BookButton } from "@/components/member/book-button"
+import { nextSevenDays, isUnlocked } from "@/lib/booking/rules"
+import { requireUser } from "@/lib/auth/get-user"
+import { createClient } from "@/lib/supabase/server"
+import type { Database } from "@/lib/supabase/database.types"
+
+type SessionRow = Database["public"]["Tables"]["sessions"]["Row"]
+type ClassRow = Database["public"]["Tables"]["classes"]["Row"]
+
+type SessionWithClass = SessionRow & {
+  classes: Pick<ClassRow, "name_ro" | "color"> | null
+}
+
+export default async function BookPage() {
+  await requireUser()
+  const supabase = await createClient()
+  const t = await getTranslations("booking")
+
+  const days = nextSevenDays()
+  const firstDay = days[0]!
+  const lastDay = days[days.length - 1]!
+
+  // Pull every session in the 7-day window, regardless of whether it's
+  // unlocked yet — we need to render the locked sessions with a
+  // "becomes-bookable" hint.
+  const { data: sessionsRaw } = await supabase
+    .from("sessions")
+    .select("*, classes(name_ro, color)")
+    .gte("session_date", firstDay)
+    .lte("session_date", lastDay)
+    .order("start_at", { ascending: true })
+
+  // Also pull the user's already-booked session ids so we can disable those.
+  const { data: { user } } = await supabase.auth.getUser()
+  const { data: myBookings } = await supabase
+    .from("bookings")
+    .select("session_id")
+    .eq("user_id", user!.id)
+    .eq("status", "booked")
+
+  const bookedIds = new Set((myBookings ?? []).map((b) => b.session_id))
+  const sessions = (sessionsRaw ?? []) as SessionWithClass[]
+
+  const byDay = new Map<string, SessionWithClass[]>()
+  for (const day of days) byDay.set(day, [])
+  for (const s of sessions) {
+    byDay.get(s.session_date)?.push(s)
+  }
+
+  const now = new Date()
+
+  return (
+    <div className="space-y-6">
+      <header>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          {t("availableSessions")}
+        </h1>
+      </header>
+
+      {days.map((day) => {
+        const list = byDay.get(day) ?? []
+        const date = parseISO(day)
+        const heading = format(date, "EEEE, d MMMM", { locale: ro })
+
+        return (
+          <Card key={day}>
+            <CardHeader>
+              <CardTitle className="capitalize">{heading}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {list.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  {t("noSessionsForDay")}
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {list.map((s) => {
+                    const start = new Date(s.start_at)
+                    const spotsLeft = Math.max(s.capacity - s.booked_count, 0)
+                    const unlocked = isUnlocked(s.unlock_at, now)
+                    const inPast = !isAfter(start, now)
+                    const alreadyBooked = bookedIds.has(s.id)
+                    const full = spotsLeft === 0
+
+                    let label = t("bookSession")
+                    let disabled = false
+
+                    if (alreadyBooked) {
+                      label = t("booked")
+                      disabled = true
+                    } else if (inPast) {
+                      label = t("inPast")
+                      disabled = true
+                    } else if (!unlocked) {
+                      label = t("locksUntilSunday")
+                      disabled = true
+                    } else if (full) {
+                      label = t("full")
+                      disabled = true
+                    }
+
+                    return (
+                      <li
+                        key={s.id}
+                        className="flex items-center justify-between gap-3 rounded border p-3"
+                      >
+                        <div className="space-y-0.5">
+                          <p className="font-medium">
+                            {format(start, "HH:mm")}
+                            {s.classes?.name_ro
+                              ? ` · ${s.classes.name_ro}`
+                              : ""}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {full
+                              ? t("full")
+                              : `${spotsLeft} ${t("spotsLeft")}`}
+                          </p>
+                        </div>
+                        <BookButton
+                          sessionId={s.id}
+                          disabled={disabled}
+                          label={label}
+                        />
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        )
+      })}
+
+      <Alert>
+        <AlertTitle>{t("rulesTitle")}</AlertTitle>
+        <AlertDescription>{t("rulesBody")}</AlertDescription>
+      </Alert>
+    </div>
+  )
+}

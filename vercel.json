@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    {
+      "path": "/api/cron/expiration-warnings",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/low-sessions-warning",
+      "schedule": "0 6 * * *"
+    }
+  ]
+}

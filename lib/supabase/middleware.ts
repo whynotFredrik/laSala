@@ -44,9 +44,17 @@ export async function updateSession(request: NextRequest) {
 
   // IMPORTANT: do not run any Supabase code between createServerClient and
   // getUser — it triggers session refresh which writes the rotated cookies.
+  //
+  // We access getUser through a small inline type to avoid a Vercel
+  // edge-build type-resolution quirk where `supabase.auth` widens to a
+  // SupabaseAuthClient that doesn't expose getUser. The runtime method is
+  // there in every version we ship; this is a typing-only workaround.
+  const auth = supabase.auth as unknown as {
+    getUser: () => Promise<{ data: { user: { id: string } | null } }>
+  }
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+  } = await auth.getUser()
 
   const { pathname } = request.nextUrl
 

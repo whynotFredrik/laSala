@@ -22,6 +22,7 @@ export type Database = {
           iso_week: string
           notes: string | null
           reschedule_count_iso_week: number
+          rescheduled_at: string | null
           session_id: string
           status: Database["public"]["Enums"]["booking_status"]
           user_id: string
@@ -33,6 +34,7 @@ export type Database = {
           iso_week: string
           notes?: string | null
           reschedule_count_iso_week?: number
+          rescheduled_at?: string | null
           session_id: string
           status?: Database["public"]["Enums"]["booking_status"]
           user_id: string
@@ -44,6 +46,7 @@ export type Database = {
           iso_week?: string
           notes?: string | null
           reschedule_count_iso_week?: number
+          rescheduled_at?: string | null
           session_id?: string
           status?: Database["public"]["Enums"]["booking_status"]
           user_id?: string
@@ -324,6 +327,51 @@ export type Database = {
         }
         Relationships: []
       }
+      meal_plans: {
+        Row: {
+          body_md: string
+          created_at: string
+          created_by: string | null
+          id: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body_md: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body_md?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meal_plans_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meal_plans_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       nutrition_logs: {
         Row: {
           calories: number | null
@@ -449,7 +497,9 @@ export type Database = {
           is_active: boolean
           name_en: string | null
           name_ro: string
-          price_ron: number
+          price_female_ron: number
+          price_male_ron: number
+          price_ron: number | null
           sessions_per_month: number
         }
         Insert: {
@@ -462,7 +512,9 @@ export type Database = {
           is_active?: boolean
           name_en?: string | null
           name_ro: string
-          price_ron: number
+          price_female_ron: number
+          price_male_ron: number
+          price_ron?: number | null
           sessions_per_month: number
         }
         Update: {
@@ -475,7 +527,9 @@ export type Database = {
           is_active?: boolean
           name_en?: string | null
           name_ro?: string
-          price_ron?: number
+          price_female_ron?: number
+          price_male_ron?: number
+          price_ron?: number | null
           sessions_per_month?: number
         }
         Relationships: []
@@ -538,6 +592,7 @@ export type Database = {
         Row: {
           created_at: string
           email: string
+          first_name: string | null
           full_name: string | null
           gdpr_consented_at: string | null
           gdpr_version: string | null
@@ -545,16 +600,18 @@ export type Database = {
           locale: string
           phone: string | null
           role: Database["public"]["Enums"]["user_role"]
+          sex: string | null
           tdee_activity: string | null
           tdee_age: number | null
           tdee_height_cm: number | null
-          tdee_sex: string | null
           tdee_value: number | null
+          trainer: string | null
           updated_at: string
         }
         Insert: {
           created_at?: string
           email: string
+          first_name?: string | null
           full_name?: string | null
           gdpr_consented_at?: string | null
           gdpr_version?: string | null
@@ -562,16 +619,18 @@ export type Database = {
           locale?: string
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          sex?: string | null
           tdee_activity?: string | null
           tdee_age?: number | null
           tdee_height_cm?: number | null
-          tdee_sex?: string | null
           tdee_value?: number | null
+          trainer?: string | null
           updated_at?: string
         }
         Update: {
           created_at?: string
           email?: string
+          first_name?: string | null
           full_name?: string | null
           gdpr_consented_at?: string | null
           gdpr_version?: string | null
@@ -579,11 +638,12 @@ export type Database = {
           locale?: string
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          sex?: string | null
           tdee_activity?: string | null
           tdee_age?: number | null
           tdee_height_cm?: number | null
-          tdee_sex?: string | null
           tdee_value?: number | null
+          trainer?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -642,6 +702,7 @@ export type Database = {
           is_enabled: boolean
           start_hour: number
           start_minute: number
+          trainer: string | null
         }
         Insert: {
           capacity?: number
@@ -652,6 +713,7 @@ export type Database = {
           is_enabled?: boolean
           start_hour: number
           start_minute?: number
+          trainer?: string | null
         }
         Update: {
           capacity?: number
@@ -662,6 +724,7 @@ export type Database = {
           is_enabled?: boolean
           start_hour?: number
           start_minute?: number
+          trainer?: string | null
         }
         Relationships: [
           {
@@ -683,6 +746,7 @@ export type Database = {
           id: string
           session_date: string
           start_at: string
+          trainer: string | null
           unlock_at: string
         }
         Insert: {
@@ -694,6 +758,7 @@ export type Database = {
           id?: string
           session_date: string
           start_at: string
+          trainer?: string | null
           unlock_at: string
         }
         Update: {
@@ -705,6 +770,7 @@ export type Database = {
           id?: string
           session_date?: string
           start_at?: string
+          trainer?: string | null
           unlock_at?: string
         }
         Relationships: [
@@ -791,6 +857,7 @@ export type Database = {
           iso_week: string
           notes: string | null
           reschedule_count_iso_week: number
+          rescheduled_at: string | null
           session_id: string
           status: Database["public"]["Enums"]["booking_status"]
           user_id: string
@@ -811,6 +878,7 @@ export type Database = {
           iso_week: string
           notes: string | null
           reschedule_count_iso_week: number
+          rescheduled_at: string | null
           session_id: string
           status: Database["public"]["Enums"]["booking_status"]
           user_id: string
@@ -850,6 +918,7 @@ export type Database = {
           iso_week: string
           notes: string | null
           reschedule_count_iso_week: number
+          rescheduled_at: string | null
           session_id: string
           status: Database["public"]["Enums"]["booking_status"]
           user_id: string
@@ -861,6 +930,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      weekly_change_count: { Args: { p_user_id: string }; Returns: number }
     }
     Enums: {
       booking_status: "booked" | "cancelled" | "completed" | "no_show"

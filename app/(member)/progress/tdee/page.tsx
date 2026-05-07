@@ -36,7 +36,9 @@ export default async function TdeePage() {
         <TdeeForm
           defaults={{
             age: profile.tdee_age,
-            sex: profile.tdee_sex as "male" | "female" | null,
+            // `sex` is set at sign-up and stored on profiles; reuse it
+            // for the BMR formula instead of a separate tdee_sex column.
+            sex: profile.sex as "male" | "female" | null,
             heightCm: profile.tdee_height_cm
               ? Number(profile.tdee_height_cm)
               : null,

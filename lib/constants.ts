@@ -42,6 +42,27 @@ export const RULES = {
 } as const
 
 /**
+ * Trainer roster. Used by the sign-up action to assign a member to the
+ * appropriate trainer based on their sex.
+ *
+ * - Men → Eugen (only male trainer for now).
+ * - Women → round-robin between Marina and Ana, balanced by current
+ *   member count.
+ *
+ * Adding a trainer = add to this list + update the
+ * `profiles.trainer` check constraint in a new migration.
+ */
+export const TRAINERS = {
+  male: ["Eugen"],
+  female: ["Marina", "Ana"],
+} as const
+
+export type Sex = "male" | "female"
+export type Trainer =
+  | (typeof TRAINERS.male)[number]
+  | (typeof TRAINERS.female)[number]
+
+/**
  * Site URL helper. Some env-var setups omit the scheme — return a
  * well-formed URL string regardless. Use this anywhere we'd otherwise call
  * `new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "...")`.

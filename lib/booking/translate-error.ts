@@ -26,6 +26,7 @@ const MAP: Array<{ test: RegExp; key: string }> = [
   { test: /cannot cancel within 3 hours/i, key: "cancel_lock_window" },
   { test: /cannot reschedule within 3 hours/i, key: "cancel_lock_window" },
   { test: /reschedule limit reached/i, key: "reschedule_cap" },
+  { test: /weekly change limit reached/i, key: "weekly_change_cap" },
 ]
 
 export function translateBookingError(

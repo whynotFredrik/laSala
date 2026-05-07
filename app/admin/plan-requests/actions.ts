@@ -35,17 +35,22 @@ async function loadRequestContext(requestId: string) {
   const { data } = await service
     .from("plan_requests")
     .select(
-      "id, profiles!user_id(id, full_name, email), plan_tiers(name_ro, price_ron)",
+      "id, profiles!user_id(id, full_name, email, sex), plan_tiers(name_ro, price_male_ron, price_female_ron)",
     )
     .eq("id", requestId)
     .maybeSingle()
   if (!data || !data.profiles || !data.plan_tiers) return null
+  const sex = data.profiles.sex as "male" | "female" | null
   return {
     userId: data.profiles.id,
     name: data.profiles.full_name ?? data.profiles.email,
     email: data.profiles.email,
     planName: data.plan_tiers.name_ro,
-    price: Number(data.plan_tiers.price_ron),
+    price: Number(
+      sex === "female"
+        ? data.plan_tiers.price_female_ron
+        : data.plan_tiers.price_male_ron,
+    ),
   }
 }
 

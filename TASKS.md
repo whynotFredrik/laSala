@@ -157,9 +157,17 @@ Work top-to-bottom. Each task is sized to be a single focused Claude Code sessio
 
 ## Phase 10 — Pre-launch
 
-- [ ] **10.1 Vercel deploy.** Connect repo, set env vars, attach domain.
-- [ ] **10.2 Lighthouse pass.** Mobile performance ≥85, accessibility ≥95.
+- [x] **10.1 Vercel deploy.** Connect repo, set env vars, attach domain.
+  - _Live on `la-sala-blush.vercel.app`. Custom domain `lasalastudio.ro` provisioning SSL._
+  - _Middleware was deleted entirely after `next-intl/plugin` proved incompatible with Vercel's Edge bundle. Auth gating moved to `app/(member)/layout.tsx` (`requireUser`) and `app/admin/layout.tsx` (`requireAdmin`); auth pages call `redirectIfSignedIn`. Same security posture, runs in Node where everything works._
+- [x] **10.2 Lighthouse pass.** Mobile performance ≥85, accessibility ≥95.
+  - _Mobile scores: Performance **99**, Accessibility **100**, Best Practices **100**, SEO **100**. All metrics green: FCP 1.0s, LCP 2.1s, CLS 0, TBT 60ms, Speed Index 1.9s._
+  - _Minor diagnostics flagged but not actionable: 12 KiB legacy JS (vendor), 20 KiB unused JS (Recharts/charts on /progress). Both are code-split and only loaded when the relevant route is hit. No optimisation needed for v1._
 - [ ] **10.3 Smoke test on a real phone.** Sign up, book a session, install as PWA.
 - [ ] **10.4 Lawyer review of GDPR document.** Replace placeholders (address, phone, contact email) with real values; have a Romanian lawyer review.
+  - _Drafted at `assets/gdpr-ro-v1.md` with real address/phone from `lib/constants.ts` and corrected to match the actual app architecture (no Stripe; Supabase Auth bcrypt instead of SHA256; bank/POS/cash payment instead of online card; Frankfurt EU data residency)._
+  - _Sections needing legal review are marked `[REVIZUIRE]` — primarily: company legal name + CUI, plan tier names/prices, refund policy._
+  - _Action: send `assets/gdpr-ro-v1.md` to a Romanian lawyer with GDPR experience. After approval, paste the Markdown body into `/admin/gdpr` and publish version "1.0"._
 - [ ] **10.5 Create real admin accounts** with strong passwords. Delete test accounts.
-- [ ] **10.6 Backup plan.** Document the Supabase backup schedule and how to restore.
+- [x] **10.6 Backup plan.** Document the Supabase backup schedule and how to restore.
+  - _`docs/BACKUP.md` — covers automatic Supabase backups (Free 7d / Pro 30d + PITR), monthly manual export procedure, storage-bucket gap, restore procedures (full / single-row / auth-only), the "what's not backed up" list, disaster contacts (incl. 72h ANSPDCP breach notification), and a quarterly restore-drill recommendation._

@@ -23,7 +23,7 @@ type SessionWithClass = SessionRow & {
 }
 
 export default async function BookPage() {
-  await requireUser()
+  const { user, profile } = await requireUser()
   const supabase = await createClient()
   const t = await getTranslations("booking")
 
@@ -31,22 +31,28 @@ export default async function BookPage() {
   const firstDay = days[0]!
   const lastDay = days[days.length - 1]!
 
-  // Pull every session in the 7-day window, regardless of whether it's
-  // unlocked yet — we need to render the locked sessions with a
-  // "becomes-bookable" hint.
-  const { data: sessionsRaw } = await supabase
+  // Pull every session in the 7-day window. We filter to either the
+  // member's assigned trainer OR sessions with no trainer assigned (legacy
+  // open sessions) so a member only sees their trainer's lineup.
+  const trainer = profile.trainer
+  let sessionsQuery = supabase
     .from("sessions")
     .select("*, classes(name_ro, color)")
     .gte("session_date", firstDay)
     .lte("session_date", lastDay)
     .order("start_at", { ascending: true })
 
-  // Also pull the user's already-booked session ids so we can disable those.
-  const { data: { user } } = await supabase.auth.getUser()
+  if (trainer) {
+    sessionsQuery = sessionsQuery.or(`trainer.eq.${trainer},trainer.is.null`)
+  }
+
+  const { data: sessionsRaw } = await sessionsQuery
+
+  // The user's currently-booked session ids — used to disable those buttons.
   const { data: myBookings } = await supabase
     .from("bookings")
     .select("session_id")
-    .eq("user_id", user!.id)
+    .eq("user_id", user.id)
     .eq("status", "booked")
 
   const bookedIds = new Set((myBookings ?? []).map((b) => b.session_id))

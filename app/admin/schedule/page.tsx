@@ -18,7 +18,7 @@ export default async function AdminSchedulePage() {
   const { data: slots } = await supabase
     .from("schedule_template")
     .select(
-      "id, day_of_week, start_hour, start_minute, duration_min, capacity, is_enabled, class_id",
+      "id, day_of_week, start_hour, start_minute, duration_min, capacity, is_enabled, class_id, trainer",
     )
     .order("day_of_week", { ascending: true })
     .order("start_hour", { ascending: true })

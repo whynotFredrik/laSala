@@ -8,7 +8,13 @@
     "password": "Parolă",
     "passwordHint": "Minim 8 caractere, fără spații.",
     "name": "Nume",
+    "firstName": "Prenume",
+    "lastName": "Nume de familie",
     "phone": "Telefon",
+    "sex": "Sex",
+    "sexHint": "Pentru repartizarea către antrenor (Eugen pentru bărbați, Marina sau Ana pentru femei).",
+    "male": "Masculin",
+    "female": "Feminin",
     "loginWithGoogle": "Autentifică-te cu Google",
     "or": "SAU",
     "dontHaveAccount": "Nu ai cont?",
@@ -86,7 +92,7 @@
     "locksUntilSunday": "Disponibil de duminică",
     "noSessionsForDay": "Nicio sesiune pentru această zi",
     "rulesTitle": "Cum funcționează rezervările",
-    "rulesBody": "Sesiunile pentru săptămâna următoare se deblochează duminica la 00:00. Anularea este posibilă cu cel puțin 3 ore înainte de sesiune. Maxim 2 reprogramări per săptămână."
+    "rulesBody": "Sesiunile pentru săptămâna următoare se deblochează duminica la 00:00. Anularea este posibilă cu cel puțin 3 ore înainte de sesiune. Ai voie la maxim 2 modificări pe săptămână (anulări + reprogramări la un loc)."
   },
   "bookingErrors": {
     "invalid_input": "Date invalide.",
@@ -103,6 +109,7 @@
     "forbidden": "Nu ai permisiunea pentru această acțiune.",
     "cancel_lock_window": "Anularea/reprogramarea nu mai este permisă cu mai puțin de 3 ore înainte de sesiune.",
     "reschedule_cap": "Ai atins limita de 2 reprogramări per săptămână.",
+    "weekly_change_cap": "Ai atins limita de 2 modificări (anulări + reprogramări) pe săptămână.",
     "unknown": "A apărut o eroare. Încearcă din nou."
   },
   "historyPage": {
@@ -117,6 +124,7 @@
     "myProfile": "Profilul meu",
     "personalDetails": "Date personale",
     "personalDetailsDesc": "Numele și telefonul tău. Email-ul se schimbă din suport.",
+    "trainer": "Antrenor",
     "save": "Salvează",
     "savedTitle": "Salvat",
     "changePassword": "Schimbă parola",
@@ -293,7 +301,32 @@
     "error": "Eroare",
     "used_exceeds_total": "Sesiuni folosite > total.",
     "save_failed": "Salvarea a eșuat.",
-    "invalid_input": "Date invalide."
+    "invalid_input": "Date invalide.",
+    "trainer": "Antrenor",
+    "trainerDesc": "Asignarea inițială se face automat la înregistrare. Schimbă manual aici dacă e cazul.",
+    "trainerChanged": "Antrenor schimbat",
+    "manageMealPlan": "Plan alimentar"
+  },
+  "adminMealPlans": {
+    "title": "Plan alimentar",
+    "subtitle": "Publică un plan nou. Versiunile anterioare rămân vizibile mai jos.",
+    "publishNew": "Publică versiune nouă",
+    "publishNewDesc": "Folosește Markdown pentru formatare.",
+    "titlePlaceholder": "ex. Plan slăbire — săptămâna 1-2",
+    "body": "Conținut",
+    "bodyPlaceholder": "## Mic dejun\n- ...",
+    "publish": "Publică",
+    "published": "Publicat",
+    "saveFailed": "Salvarea a eșuat",
+    "history": "Versiuni anterioare",
+    "noPlans": "Niciun plan publicat încă.",
+    "back": "Înapoi"
+  },
+  "mealPlan": {
+    "title": "Plan alimentar",
+    "publishedOn": "Publicat",
+    "none": "Nu ai un plan publicat",
+    "noneBody": "Antrenorul îți va publica un plan personalizat aici. Întreabă-l la prima sesiune."
   },
   "adminPlanRequests": {
     "title": "Cereri de planuri",
@@ -332,7 +365,8 @@
     "capacityShort": "locuri",
     "minutes": "minute",
     "capacity": "Capacitate",
-    "delete": "Șterge"
+    "delete": "Șterge",
+    "missingTrainer": "Slot-ul nu are antrenor asignat — editează-l direct în baza de date."
   },
   "adminSessions": {
     "title": "Sesiuni",
@@ -350,6 +384,8 @@
     "editDescription": "Modifică numele, prețul și numărul de sesiuni. Schimbările apar imediat în pagina Planuri.",
     "code": "Cod",
     "nameRo": "Nume",
+    "priceMale": "Preț bărbați (RON)",
+    "priceFemale": "Preț femei (RON)",
     "save": "Salvează",
     "saved": "Salvat",
     "save_failed": "Salvarea a eșuat",

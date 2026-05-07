@@ -17,6 +17,7 @@ type ScheduleSlot = {
   capacity: number
   is_enabled: boolean
   class_id: string | null
+  trainer: "Eugen" | "Marina" | "Ana" | null
 }
 
 /**
@@ -47,7 +48,7 @@ export async function generateNextWeekSessionsAction(): Promise<GenerateSessions
   const { data: template, error: tplErr } = await service
     .from("schedule_template")
     .select(
-      "id, day_of_week, start_hour, start_minute, duration_min, capacity, is_enabled, class_id",
+      "id, day_of_week, start_hour, start_minute, duration_min, capacity, is_enabled, class_id, trainer",
     )
     .eq("is_enabled", true)
 
@@ -72,13 +73,14 @@ export async function generateNextWeekSessionsAction(): Promise<GenerateSessions
     const endAt = new Date(startAt.getTime() + slot.duration_min * 60_000)
     const unlockAt = unlockAtFor(localStart)
 
-    // Check existence (the unique index would also prevent dupes, but we
-    // want to count skipped for the UI).
+    // Check existence — uniqueness is now per (date, start, trainer), so
+    // multiple trainers can have parallel sessions at the same time.
     const { data: existing } = await service
       .from("sessions")
       .select("id")
       .eq("session_date", sessionDate)
       .eq("start_at", startAt.toISOString())
+      .eq("trainer", slot.trainer ?? "")
       .maybeSingle()
 
     if (existing) {
@@ -93,6 +95,7 @@ export async function generateNextWeekSessionsAction(): Promise<GenerateSessions
       end_at: endAt.toISOString(),
       capacity: slot.capacity,
       unlock_at: unlockAt.toISOString(),
+      trainer: slot.trainer,
     })
     if (error) {
       // Stop on first hard error so the admin sees it; partial creation is OK.

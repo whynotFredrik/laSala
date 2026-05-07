@@ -47,11 +47,14 @@ export async function saveTdeeAction(
 
   const { user } = await requireUser()
   const supabase = await createClient()
+  // We persist `sex` here as well, so the unified profile.sex stays in
+  // sync if the user adjusts it for TDEE purposes (e.g. fixed at sign-up
+  // but later corrected).
   const { error } = await supabase
     .from("profiles")
     .update({
       tdee_age: parsed.data.age,
-      tdee_sex: parsed.data.sex,
+      sex: parsed.data.sex,
       tdee_height_cm: parsed.data.heightCm,
       tdee_activity: parsed.data.activity,
       tdee_value: value,

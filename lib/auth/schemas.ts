@@ -26,12 +26,14 @@ export type SignInInput = z.infer<typeof signInSchema>
 const phoneRegex = /^(\+40|0040|0)?[0-9]{9}$/
 
 export const signUpSchema = z.object({
-  fullName: z.string().min(2).max(120),
+  firstName: z.string().min(2).max(80),
+  lastName: z.string().min(2).max(120),
   email: z.string().email(),
   phone: z
     .string()
     .trim()
     .regex(phoneRegex, "phone_invalid"),
+  sex: z.enum(["male", "female"]),
   password: passwordCreate,
   gdprConsent: z
     .boolean()

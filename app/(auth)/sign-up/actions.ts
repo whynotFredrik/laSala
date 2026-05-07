@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation"
 
 import { normalisePhone, signUpSchema } from "@/lib/auth/schemas"
+import { assignTrainer } from "@/lib/auth/trainers"
 import { createClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/service"
 
@@ -13,15 +14,18 @@ export type SignUpState =
 
 /**
  * Email/password sign-up. Flow:
- * 1. Validate input.
+ * 1. Validate input (firstName, lastName, email, phone, sex, password, GDPR).
  * 2. Resolve current GDPR document version so we can stamp `gdpr_version`
  *    on the profile.
- * 3. Call `supabase.auth.signUp` with `full_name` in user metadata so the
- *    `handle_new_user` trigger picks it up.
- * 4. The trigger inserts the profile row. We then update it with phone +
- *    GDPR consent fields using the service client (RLS would otherwise
- *    block the update before the user has a session — and email confirm may
- *    be enabled).
+ * 3. Call `supabase.auth.signUp` with `full_name`, `first_name`, and `sex`
+ *    in user metadata so the `handle_new_user` trigger picks them up.
+ * 4. The trigger inserts the profile row. We then update it with phone,
+ *    GDPR consent fields, and the assigned trainer using the service
+ *    client (RLS would otherwise block the update before the user has a
+ *    session — and email confirm may be enabled).
+ *
+ *    Trainer assignment: men → Eugen; women → balanced between Marina
+ *    and Ana (whoever currently has fewer female members).
  * 5. Redirect: if email confirm is required, send to a "check your email"
  *    state; otherwise straight to /home.
  */
@@ -30,9 +34,11 @@ export async function signUpAction(
   formData: FormData,
 ): Promise<SignUpState> {
   const parsed = signUpSchema.safeParse({
-    fullName: formData.get("fullName"),
+    firstName: formData.get("firstName"),
+    lastName: formData.get("lastName"),
     email: formData.get("email"),
     phone: formData.get("phone"),
+    sex: formData.get("sex"),
     password: formData.get("password"),
     gdprConsent: formData.get("gdprConsent") === "on",
   })
@@ -42,7 +48,8 @@ export async function signUpAction(
     return { status: "error", message: first?.message ?? "invalid_input" }
   }
 
-  const { fullName, email, phone, password } = parsed.data
+  const { firstName, lastName, email, phone, sex, password } = parsed.data
+  const fullName = `${firstName} ${lastName}`.trim()
 
   const supabase = await createClient()
   const service = createServiceClient()
@@ -58,7 +65,11 @@ export async function signUpAction(
     email,
     password,
     options: {
-      data: { full_name: fullName },
+      data: {
+        full_name: fullName,
+        first_name: firstName,
+        sex,
+      },
       emailRedirectTo: `${
         process.env.NEXT_PUBLIC_SITE_URL ?? ""
       }/auth/callback?next=/home`,
@@ -77,13 +88,19 @@ export async function signUpAction(
     return { status: "error", message: "sign_up_failed" }
   }
 
-  // Stamp phone + GDPR onto the profile (the trigger only handles id/email/full_name).
+  // Auto-pick a trainer if there's a deterministic choice (men → Eugen).
+  // Women are left unassigned and an admin picks Marina or Ana later.
+  const trainer = await assignTrainer(sex)
+
+  // Stamp phone + GDPR (+ trainer if auto-assigned) onto the profile.
+  // The trigger handled id/email/full_name/first_name/sex.
   const { error: updateError } = await service
     .from("profiles")
     .update({
       phone: normalisePhone(phone),
       gdpr_consented_at: new Date().toISOString(),
       gdpr_version: gdpr?.version ?? null,
+      ...(trainer ? { trainer } : {}),
     })
     .eq("id", userId)
 

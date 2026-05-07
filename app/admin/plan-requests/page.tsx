@@ -19,24 +19,34 @@ export default async function PlanRequestsAdminPage() {
   const { data: requests } = await supabase
     .from("plan_requests")
     .select(
-      "id, created_at, status, notes, preferred_payment_method, plan_tiers(name_ro, price_ron), profiles!user_id(full_name, email)",
+      "id, created_at, status, notes, preferred_payment_method, plan_tiers(name_ro, price_male_ron, price_female_ron), profiles!user_id(full_name, email, sex)",
     )
     .eq("status", "pending")
     .order("created_at", { ascending: true })
 
-  const list = (requests ?? []).map((r) => ({
-    id: r.id,
-    created_at: r.created_at,
-    notes: r.notes,
-    preferred_payment_method: r.preferred_payment_method,
-    profile: {
-      full_name: r.profiles?.full_name ?? null,
-      email: r.profiles?.email ?? "—",
-    },
-    tier: r.plan_tiers
-      ? { name_ro: r.plan_tiers.name_ro, price_ron: Number(r.plan_tiers.price_ron) }
-      : null,
-  }))
+  const list = (requests ?? []).map((r) => {
+    const sex = r.profiles?.sex as "male" | "female" | null
+    const price = r.plan_tiers
+      ? Number(
+          sex === "female"
+            ? r.plan_tiers.price_female_ron
+            : r.plan_tiers.price_male_ron,
+        )
+      : 0
+    return {
+      id: r.id,
+      created_at: r.created_at,
+      notes: r.notes,
+      preferred_payment_method: r.preferred_payment_method,
+      profile: {
+        full_name: r.profiles?.full_name ?? null,
+        email: r.profiles?.email ?? "—",
+      },
+      tier: r.plan_tiers
+        ? { name_ro: r.plan_tiers.name_ro, price_ron: price }
+        : null,
+    }
+  })
 
   return (
     <div className="space-y-6">

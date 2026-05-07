@@ -14,7 +14,8 @@ const tierSchema = z.object({
   category: z.enum(["monthly", "promo_6m"]),
   sessionsPerMonth: z.coerce.number().int().min(1).max(40),
   durationMonths: z.coerce.number().int().min(1).max(24),
-  priceRon: z.coerce.number().min(0).max(100000),
+  priceMaleRon: z.coerce.number().min(0).max(100000),
+  priceFemaleRon: z.coerce.number().min(0).max(100000),
   displayOrder: z.coerce.number().int().min(0).max(10000),
   isActive: z.boolean(),
 })
@@ -29,7 +30,8 @@ export async function upsertTierAction(input: {
   category: "monthly" | "promo_6m"
   sessionsPerMonth: number
   durationMonths: number
-  priceRon: number
+  priceMaleRon: number
+  priceFemaleRon: number
   displayOrder: number
   isActive: boolean
 }): Promise<TierResult> {
@@ -39,6 +41,9 @@ export async function upsertTierAction(input: {
   await requireAdmin()
   const service = createServiceClient()
 
+  // Set the legacy `price_ron` to the male price for backward-compat with
+  // any code path that still reads it. The two real sources of truth are
+  // `price_male_ron` and `price_female_ron`.
   const row = {
     code: parsed.data.code,
     name_ro: parsed.data.nameRo,
@@ -46,7 +51,9 @@ export async function upsertTierAction(input: {
     category: parsed.data.category,
     sessions_per_month: parsed.data.sessionsPerMonth,
     duration_months: parsed.data.durationMonths,
-    price_ron: parsed.data.priceRon,
+    price_ron: parsed.data.priceMaleRon,
+    price_male_ron: parsed.data.priceMaleRon,
+    price_female_ron: parsed.data.priceFemaleRon,
     display_order: parsed.data.displayOrder,
     is_active: parsed.data.isActive,
   }

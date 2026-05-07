@@ -14,7 +14,7 @@ import { PayInfoCard } from "./pay-info-card"
 import { RequestPlanButton } from "./request-plan-button"
 
 export default async function PlansPage() {
-  const { user } = await requireUser()
+  const { user, profile } = await requireUser()
   const supabase = await createClient()
   const t = await getTranslations("plans")
 
@@ -23,7 +23,7 @@ export default async function PlansPage() {
       supabase
         .from("plan_tiers")
         .select(
-          "id, code, name_ro, category, sessions_per_month, duration_months, price_ron",
+          "id, code, name_ro, category, sessions_per_month, duration_months, price_male_ron, price_female_ron",
         )
         .eq("is_active", true)
         .order("display_order", { ascending: true }),
@@ -43,6 +43,9 @@ export default async function PlansPage() {
 
   const hasPending = !!pending
   const hasActive = !!active
+  // Pick the price column for the member's sex. Falls back to male price
+  // for the rare case a member's sex is somehow unset (legacy accounts).
+  const sex = (profile.sex as "male" | "female" | null) ?? "male"
 
   return (
     <div className="space-y-6">
@@ -53,8 +56,10 @@ export default async function PlansPage() {
 
       <div className="grid gap-3 sm:grid-cols-2">
         {(tiers ?? []).map((tier) => {
-          const totalSessions =
-            tier.sessions_per_month * tier.duration_months
+          const totalSessions = tier.sessions_per_month * tier.duration_months
+          const price = Number(
+            sex === "female" ? tier.price_female_ron : tier.price_male_ron,
+          )
           return (
             <Card key={tier.id}>
               <CardHeader>
@@ -67,7 +72,7 @@ export default async function PlansPage() {
               </CardHeader>
               <CardContent className="flex items-center justify-between">
                 <p className="text-2xl font-semibold">
-                  {tier.price_ron.toLocaleString("ro-RO")}{" "}
+                  {price.toLocaleString("ro-RO")}{" "}
                   <span className="text-sm font-normal text-muted-foreground">
                     RON
                   </span>

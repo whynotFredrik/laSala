@@ -22,6 +22,8 @@ const DAYS = [
   { value: 6, key: "sunday" },
 ] as const
 
+const TRAINERS = ["Eugen", "Marina", "Ana"] as const
+
 export type ScheduleSlot = {
   id: string
   day_of_week: number
@@ -31,6 +33,7 @@ export type ScheduleSlot = {
   capacity: number
   is_enabled: boolean
   class_id: string | null
+  trainer: (typeof TRAINERS)[number] | null
 }
 
 export function ScheduleEditor({ slots }: { slots: ScheduleSlot[] }) {
@@ -43,6 +46,7 @@ export function ScheduleEditor({ slots }: { slots: ScheduleSlot[] }) {
     startMinute: 0,
     durationMin: 60,
     capacity: 6,
+    trainer: "Eugen" as (typeof TRAINERS)[number],
   })
 
   const grouped = new Map<number, ScheduleSlot[]>()
@@ -70,6 +74,10 @@ export function ScheduleEditor({ slots }: { slots: ScheduleSlot[] }) {
 
   const toggle = (slot: ScheduleSlot) =>
     start(async () => {
+      if (!slot.trainer) {
+        toast.error(t("missingTrainer"))
+        return
+      }
       const res = await upsertScheduleSlotAction({
         id: slot.id,
         dayOfWeek: slot.day_of_week,
@@ -78,6 +86,7 @@ export function ScheduleEditor({ slots }: { slots: ScheduleSlot[] }) {
         durationMin: slot.duration_min,
         capacity: slot.capacity,
         classId: slot.class_id,
+        trainer: slot.trainer,
         isEnabled: !slot.is_enabled,
       })
       if (res.status === "error") toast.error(t("saveFailed"))
@@ -94,7 +103,7 @@ export function ScheduleEditor({ slots }: { slots: ScheduleSlot[] }) {
     <div className="space-y-6">
       <section className="rounded border p-3">
         <h3 className="text-sm font-medium">{t("addSlot")}</h3>
-        <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_1fr_1fr_1fr_auto]">
+        <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_1fr_1fr_1fr_1fr_auto]">
           <select
             className="h-9 rounded border bg-background px-2 text-sm"
             value={draft.dayOfWeek}
@@ -154,6 +163,22 @@ export function ScheduleEditor({ slots }: { slots: ScheduleSlot[] }) {
             }
             placeholder={t("capacity")}
           />
+          <select
+            className="h-9 rounded border bg-background px-2 text-sm"
+            value={draft.trainer}
+            onChange={(e) =>
+              setDraft((d) => ({
+                ...d,
+                trainer: e.target.value as (typeof TRAINERS)[number],
+              }))
+            }
+          >
+            {TRAINERS.map((tr) => (
+              <option key={tr} value={tr}>
+                {tr}
+              </option>
+            ))}
+          </select>
           <Button type="button" onClick={addSlot} disabled={pending}>
             {t("add")}
           </Button>
@@ -184,6 +209,9 @@ export function ScheduleEditor({ slots }: { slots: ScheduleSlot[] }) {
                       <span className="text-muted-foreground">
                         · {s.duration_min}min · {s.capacity}{" "}
                         {t("capacityShort")}
+                      </span>
+                      <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-xs">
+                        {s.trainer ?? "—"}
                       </span>
                       {!s.is_enabled ? (
                         <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">

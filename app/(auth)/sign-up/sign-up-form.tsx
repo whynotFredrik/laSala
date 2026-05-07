@@ -29,15 +29,27 @@ export function SignUpForm() {
 
   return (
     <form action={action} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="fullName">{t("name")}</Label>
-        <Input
-          id="fullName"
-          name="fullName"
-          autoComplete="name"
-          required
-          minLength={2}
-        />
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="firstName">{t("firstName")}</Label>
+          <Input
+            id="firstName"
+            name="firstName"
+            autoComplete="given-name"
+            required
+            minLength={2}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="lastName">{t("lastName")}</Label>
+          <Input
+            id="lastName"
+            name="lastName"
+            autoComplete="family-name"
+            required
+            minLength={2}
+          />
+        </div>
       </div>
 
       <div className="space-y-2">
@@ -63,6 +75,33 @@ export function SignUpForm() {
           required
         />
       </div>
+
+      <fieldset className="space-y-2">
+        <legend className="text-sm font-medium">{t("sex")}</legend>
+        <p className="text-xs text-muted-foreground">{t("sexHint")}</p>
+        <div className="grid grid-cols-2 gap-2">
+          <label className="flex items-center gap-2 rounded border p-2 text-sm hover:bg-muted/50">
+            <input
+              type="radio"
+              name="sex"
+              value="female"
+              required
+              className="size-4"
+            />
+            <span>{t("female")}</span>
+          </label>
+          <label className="flex items-center gap-2 rounded border p-2 text-sm hover:bg-muted/50">
+            <input
+              type="radio"
+              name="sex"
+              value="male"
+              required
+              className="size-4"
+            />
+            <span>{t("male")}</span>
+          </label>
+        </div>
+      </fieldset>
 
       <div className="space-y-2">
         <Label htmlFor="password">{t("password")}</Label>

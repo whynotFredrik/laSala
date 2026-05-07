@@ -13,6 +13,7 @@ import { ProfileForm } from "./profile-form"
 import { ChangePasswordForm } from "./change-password-form"
 import { FreezeSection } from "./freeze-section"
 import { GdprViewer } from "./gdpr-viewer"
+import { MealPlanCard } from "./meal-plan-card"
 
 export default async function ProfilePage() {
   const { profile } = await requireUser()
@@ -31,11 +32,17 @@ export default async function ProfilePage() {
           <CardTitle>{t("personalDetails")}</CardTitle>
           <CardDescription>{t("personalDetailsDesc")}</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <ProfileForm
             defaultName={profile.full_name ?? ""}
             defaultPhone={profile.phone ?? ""}
           />
+          {profile.trainer ? (
+            <p className="rounded border bg-muted/40 p-2 text-sm">
+              <span className="text-muted-foreground">{t("trainer")}: </span>
+              <span className="font-medium">{profile.trainer}</span>
+            </p>
+          ) : null}
         </CardContent>
       </Card>
 
@@ -47,6 +54,8 @@ export default async function ProfilePage() {
           <ChangePasswordForm />
         </CardContent>
       </Card>
+
+      <MealPlanCard userId={profile.id} />
 
       <FreezeSection userId={profile.id} />
 

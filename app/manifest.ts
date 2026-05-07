@@ -17,7 +17,9 @@ export default function manifest(): MetadataRoute.Manifest {
     display: "standalone",
     orientation: "portrait",
     background_color: "#ffffff",
-    theme_color: "#0f172a",
+    // Brand red (matches `--primary` in globals.css). Used by Android
+    // for the address bar tint and the splash-screen accent.
+    theme_color: "#dc2626",
     lang: "ro",
     dir: "ltr",
     categories: ["health", "fitness", "lifestyle"],

@@ -1,55 +1,55 @@
 import Link from "next/link"
 import { getTranslations } from "next-intl/server"
 
+import { Logo } from "@/components/brand/logo"
 import { SignOutButton } from "@/components/member/sign-out-button"
 
 /**
- * Top nav for authenticated member pages. Mobile-first: shows brand on the
- * left, a collapsing link row in the center, and sign-out on the right.
+ * Top nav for authenticated member pages. Logo on the left links back to
+ * /home, link row scrolls horizontally on narrow screens, sign-out anchored
+ * to the right.
  */
 export async function MemberNav() {
   const t = await getTranslations("nav")
 
   return (
     <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur">
-      <div className="mx-auto flex max-w-3xl items-center gap-4 px-4 py-3">
-        <Link href="/home" className="font-semibold tracking-tight">
-          Lasala
-        </Link>
-        <nav className="ml-auto flex items-center gap-1 text-sm">
+      <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3">
+        <Logo href="/home" variant="icon" />
+        <nav className="-mx-1 ml-1 flex flex-1 items-center gap-1 overflow-x-auto px-1 text-sm">
           <Link
             href="/home"
-            className="rounded px-2 py-1 hover:bg-muted"
+            className="whitespace-nowrap rounded px-2 py-1 hover:bg-muted"
           >
             {t("home")}
           </Link>
           <Link
             href="/book"
-            className="rounded px-2 py-1 hover:bg-muted"
+            className="whitespace-nowrap rounded px-2 py-1 hover:bg-muted"
           >
             {t("book")}
           </Link>
           <Link
             href="/history"
-            className="rounded px-2 py-1 hover:bg-muted"
+            className="whitespace-nowrap rounded px-2 py-1 hover:bg-muted"
           >
             {t("history")}
           </Link>
           <Link
             href="/progress"
-            className="rounded px-2 py-1 hover:bg-muted"
+            className="whitespace-nowrap rounded px-2 py-1 hover:bg-muted"
           >
             {t("progress")}
           </Link>
           <Link
             href="/plans"
-            className="rounded px-2 py-1 hover:bg-muted"
+            className="whitespace-nowrap rounded px-2 py-1 hover:bg-muted"
           >
             {t("plans")}
           </Link>
           <Link
             href="/profile"
-            className="rounded px-2 py-1 hover:bg-muted"
+            className="whitespace-nowrap rounded px-2 py-1 hover:bg-muted"
           >
             {t("profile")}
           </Link>

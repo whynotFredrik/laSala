@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { format } from "date-fns"
 import { ro } from "date-fns/locale"
 import { notFound } from "next/navigation"
@@ -10,9 +11,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { buttonVariants } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/server"
 
 import { AdjustPlanForm } from "./adjust-plan-form"
+import { TrainerSelect } from "./trainer-select"
 
 export default async function AdminUserDetailPage({
   params,
@@ -70,8 +73,25 @@ export default async function AdminUserDetailPage({
           {profile.phone ? ` · ${profile.phone}` : ""}
           {" · "}
           {profile.role}
+          {profile.sex ? ` · ${profile.sex === "male" ? "♂" : "♀"}` : ""}
         </p>
       </header>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("trainer")}</CardTitle>
+          <CardDescription>{t("trainerDesc")}</CardDescription>
+        </CardHeader>
+        <CardContent className="flex items-center justify-between gap-4">
+          <TrainerSelect userId={profile.id} current={profile.trainer} />
+          <Link
+            href={`/admin/users/${profile.id}/meal-plan`}
+            className={buttonVariants({ variant: "outline", size: "sm" })}
+          >
+            {t("manageMealPlan")}
+          </Link>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

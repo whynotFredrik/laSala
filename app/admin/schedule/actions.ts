@@ -19,6 +19,7 @@ const slotSchema = z.object({
   durationMin: z.coerce.number().int().min(15).max(240),
   capacity: z.coerce.number().int().min(1).max(50),
   classId: z.string().uuid().nullable().optional(),
+  trainer: z.enum(["Eugen", "Marina", "Ana"]),
   isEnabled: z.boolean(),
 })
 
@@ -34,6 +35,7 @@ export async function upsertScheduleSlotAction(input: {
   durationMin: number
   capacity: number
   classId?: string | null
+  trainer: "Eugen" | "Marina" | "Ana"
   isEnabled: boolean
 }): Promise<ScheduleResult> {
   const parsed = slotSchema.safeParse(input)
@@ -51,6 +53,7 @@ export async function upsertScheduleSlotAction(input: {
     duration_min: parsed.data.durationMin,
     capacity: parsed.data.capacity,
     class_id: parsed.data.classId ?? null,
+    trainer: parsed.data.trainer,
     is_enabled: parsed.data.isEnabled,
   }
 

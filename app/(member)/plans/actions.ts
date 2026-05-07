@@ -57,13 +57,17 @@ export async function requestPlanAction(
   const service = createServiceClient()
   const { data: tier } = await service
     .from("plan_tiers")
-    .select("name_ro, price_ron")
+    .select("name_ro, price_male_ron, price_female_ron")
     .eq("id", parsed.data.tierId)
     .maybeSingle()
 
   if (tier) {
     const planName = tier.name_ro
-    const price = Number(tier.price_ron)
+    // Pick the price column for the requester's sex; fall back to male
+    // price for legacy accounts where sex is unset.
+    const price = Number(
+      profile.sex === "female" ? tier.price_female_ron : tier.price_male_ron,
+    )
     const recipientName = profile.full_name ?? profile.email
 
     // 1. User ack

@@ -3,46 +3,41 @@ import Link from "next/link"
 
 import { cn } from "@/lib/utils"
 
+const SIZES = {
+  sm: "size-8",
+  md: "size-10",
+  lg: "size-14",
+} as const
+
 /**
- * Brand mark + wordmark. Use the `iconOnly` variant on tight headers
- * (member nav on mobile) and the full wordmark on landing / desktop.
+ * Brand mark. Just the icon — no wordmark text. The icon SVG already
+ * contains the brand identity, so adjacent text would be redundant.
  *
  * Renders an `<a>` so the logo is always a link back home.
  */
 export function Logo({
   href = "/",
-  variant = "wordmark",
+  size = "md",
   className,
 }: {
   href?: string
-  variant?: "wordmark" | "icon"
+  size?: keyof typeof SIZES
   className?: string
 }) {
   return (
     <Link
       href={href}
-      className={cn(
-        "inline-flex items-center gap-2 font-semibold tracking-tight",
-        className,
-      )}
-      aria-label="Lasala Fitness Studio"
+      className={cn("inline-flex items-center", className)}
+      aria-label="Lasala Studio"
     >
       <Image
         src="/icon.svg"
-        alt=""
-        width={28}
-        height={28}
-        className="size-7 rounded-md"
+        alt="Lasala Studio"
+        width={56}
+        height={56}
+        className={cn(SIZES[size], "rounded-md")}
         priority
       />
-      {variant === "wordmark" ? (
-        <span className="flex flex-col leading-none">
-          <span className="text-base font-bold tracking-tight">LASALA</span>
-          <span className="text-[10px] font-medium tracking-[0.18em] text-primary">
-            FITNESS STUDIO
-          </span>
-        </span>
-      ) : null}
     </Link>
   )
 }

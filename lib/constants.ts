@@ -5,7 +5,7 @@
 
 export const BUSINESS = {
   name: "Lasala Fitness Studio",
-  tagline: "Personal Training & Transformare",
+  tagline: "Calisthenics Studio",
   address: "Str. Evreilor Deportați 14, Oradea",
   city: "Oradea",
   country: "Romania",
@@ -14,8 +14,8 @@ export const BUSINESS = {
   email: "hello@lasalastudio.ro",
   domain: "lasalastudio.ro",
   mapQuery: "Str.+Evreilor+Deportati+14+Oradea+Romania",
-  instagram: "https://instagram.com/lasalafitness",
-  instagramHandle: "@lasalafitness",
+  instagram: "https://instagram.com/lasalastudio.oradea",
+  instagramHandle: "@lasalastudio.oradea",
   facebook: "https://facebook.com/lasalafitness",
   whatsapp: "https://wa.me/40770431340",
 } as const

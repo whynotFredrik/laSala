@@ -1,16 +1,17 @@
 import Link from "next/link"
 import {
+  Activity,
   Apple,
-  Dumbbell,
   Mail,
   MapPin,
   Phone,
   ShieldCheck,
   Sparkles,
+  Target,
   Timer,
   Users,
+  Wind,
   Zap,
-  PersonStanding,
   type LucideIcon,
 } from "lucide-react"
 
@@ -25,6 +26,7 @@ import {
 } from "@/components/ui/card"
 import { BUSINESS } from "@/lib/constants"
 import { createClient } from "@/lib/supabase/server"
+import { cn } from "@/lib/utils"
 
 /**
  * Public landing page. Public — middleware doesn't gate `/`. Logged-in users
@@ -40,7 +42,7 @@ export default async function MarketingPage() {
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
-          <Logo />
+          <Logo size="sm" />
           {user ? (
             <Link
               href="/home"
@@ -70,7 +72,6 @@ export default async function MarketingPage() {
       <main>
         <Hero />
         <Services />
-        <Trainers />
         <WhyUs />
         <Contact />
       </main>
@@ -123,18 +124,18 @@ function Hero() {
         <div className="max-w-2xl space-y-6">
           <p className="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs font-medium uppercase tracking-wider text-primary">
             <Sparkles className="size-3.5" />
-            Personal training · Oradea
+            Calisthenics · Oradea
           </p>
           <h1 className="text-4xl font-bold leading-tight tracking-tight sm:text-6xl">
-            Antrenamente care{" "}
-            <span className="text-primary">transformă</span>
+            Forță reală cu{" "}
+            <span className="text-primary">propria greutate</span>
             <br />
-            corpul și mintea.
+            în grupuri mici.
           </h1>
           <p className="max-w-xl text-base text-background/80 sm:text-lg">
-            Sesiuni 1-la-1 sau în grupuri mici, plan nutrițional personalizat,
-            urmărirea progresului — totul într-un singur loc, alături de
-            antrenori dedicați.
+            Antrenamente de calisthenics în grup, sub îndrumarea unui antrenor
+            dedicat. Fără echipamente complicate — doar bara, paralelele și
+            corpul tău.
           </p>
           <div className="flex flex-wrap gap-3 pt-2">
             <Link
@@ -147,7 +148,13 @@ function Hero() {
               href={`https://www.google.com/maps/search/?api=1&query=${BUSINESS.mapQuery}`}
               target="_blank"
               rel="noreferrer"
-              className={buttonVariants({ variant: "outline", size: "lg" })}
+              className={cn(
+                buttonVariants({ variant: "outline", size: "lg" }),
+                // The outline variant uses bg-background (white) + inherits
+                // text colour. On the dark hero the inherited colour is
+                // white → invisible. Pin the text colour to foreground.
+                "text-foreground",
+              )}
             >
               <MapPin />
               Vezi pe hartă
@@ -165,34 +172,34 @@ const SERVICES: Array<{
   desc: string
 }> = [
   {
-    icon: Dumbbell,
-    title: "Personal Training",
-    desc: "Antrenamente 1-la-1, adaptate obiectivelor și nivelului tău.",
+    icon: Activity,
+    title: "Calisthenics",
+    desc: "Forță și control prin mișcări cu propria greutate — pull-up, dip, muscle-up, planșă.",
   },
   {
     icon: Users,
     title: "Antrenamente în grup",
-    desc: "Sesiuni de grup mic, motivante și energizante.",
-  },
-  {
-    icon: Apple,
-    title: "Nutriție & dietă",
-    desc: "Planuri alimentare personalizate, livrate digital.",
-  },
-  {
-    icon: PersonStanding,
-    title: "Transformare corporală",
-    desc: "Programe complete pentru slăbit sau masă musculară.",
+    desc: "Grupuri mici, atmosferă bună și progres alături de ceilalți membri.",
   },
   {
     icon: Zap,
-    title: "HIIT & cardio",
-    desc: "Antrenamente intense pentru arderea grăsimilor.",
+    title: "Condiție fizică & HIIT",
+    desc: "Sesiuni intense pentru rezistență, ardere de grăsime și capacitate cardiovasculară.",
   },
   {
-    icon: Timer,
-    title: "Flexibilitate program",
-    desc: "Rezervări pe aplicație, anulare cu 3 ore înainte.",
+    icon: Wind,
+    title: "Mobilitate & flexibilitate",
+    desc: "Lucru de mobilitate pentru articulații sănătoase și amplitudine completă în mișcări.",
+  },
+  {
+    icon: Target,
+    title: "Transformare corporală",
+    desc: "Programe de slăbire sau masă, cu monitorizare lunară și ajustări periodice.",
+  },
+  {
+    icon: Apple,
+    title: "Nutriție (serviciu separat)",
+    desc: "Plan alimentar personalizat de la antrenor — disponibil ca serviciu adițional.",
   },
 ]
 
@@ -229,99 +236,48 @@ function Services() {
   )
 }
 
-const TRAINERS: Array<{ initials: string; name: string; speciality: string }> = [
-  {
-    initials: "E",
-    name: "Eugen",
-    speciality: "Antrenor pentru bărbați · forță și hipertrofie",
-  },
-  {
-    initials: "M",
-    name: "Marina",
-    speciality: "Antrenor pentru femei · transformare corporală",
-  },
-  {
-    initials: "A",
-    name: "Ana",
-    speciality: "Antrenor pentru femei · cardio și flexibilitate",
-  },
-]
-
-function Trainers() {
-  return (
-    <section className="bg-muted/40 py-16 sm:py-20">
-      <div className="mx-auto max-w-5xl space-y-8 px-4">
-        <div className="space-y-2 text-center">
-          <p className="text-xs font-medium uppercase tracking-wider text-primary">
-            Echipa
-          </p>
-          <h2 className="text-3xl font-semibold tracking-tight">Antrenorii</h2>
-          <p className="mx-auto max-w-xl text-sm text-muted-foreground">
-            Trei antrenori dedicați, fiecare cu specializarea lui. Te
-            repartizăm în funcție de obiective și disponibilitate.
-          </p>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-3">
-          {TRAINERS.map((tr) => (
-            <Card key={tr.name} className="text-center">
-              <CardHeader className="items-center space-y-3">
-                <div className="inline-flex size-16 items-center justify-center rounded-full bg-foreground text-2xl font-bold text-background ring-2 ring-primary/40 ring-offset-2">
-                  {tr.initials}
-                </div>
-                <CardTitle>{tr.name}</CardTitle>
-                <CardDescription className="text-xs">
-                  {tr.speciality}
-                </CardDescription>
-              </CardHeader>
-              <CardContent />
-            </Card>
-          ))}
-        </div>
-      </div>
-    </section>
-  )
-}
-
 const WHY = [
   {
     icon: ShieldCheck,
-    title: "Plan personalizat",
-    desc: "Fiecare antrenament e gândit pentru obiectivul tău — nu e program generic.",
+    title: "Specializat în calisthenics",
+    desc: "Antrenori formați pe disciplina calisthenics — progresii corecte, fără shortcut-uri.",
+  },
+  {
+    icon: Users,
+    title: "Grupuri mici",
+    desc: "Atenție individuală în fiecare sesiune, dar cu energia și motivația unui grup.",
   },
   {
     icon: Timer,
     title: "Rezervări simple",
-    desc: "Aplicație rapidă, rezervări într-un click, notificări automate.",
-  },
-  {
-    icon: Apple,
-    title: "Nutriție inclusă",
-    desc: "Plan alimentar livrat digital, ajustat lunar de antrenor.",
+    desc: "Aplicație rapidă, rezervări într-un click, anulare cu 3 ore înainte de sesiune.",
   },
 ]
 
 function WhyUs() {
   return (
-    <section className="mx-auto max-w-5xl space-y-8 px-4 py-16 sm:py-20">
-      <div className="space-y-2 text-center">
-        <p className="text-xs font-medium uppercase tracking-wider text-primary">
-          De ce noi
-        </p>
-        <h2 className="text-3xl font-semibold tracking-tight">
-          Mai mult decât o sală de fitness
-        </h2>
-      </div>
-      <div className="grid gap-6 sm:grid-cols-3">
-        {WHY.map((w) => {
-          const Icon = w.icon
-          return (
-            <div key={w.title} className="space-y-2 text-center">
-              <Icon className="mx-auto size-6 text-primary" />
-              <p className="font-semibold">{w.title}</p>
-              <p className="text-sm text-muted-foreground">{w.desc}</p>
-            </div>
-          )
-        })}
+    <section className="bg-muted/40 py-16 sm:py-20">
+      <div className="mx-auto max-w-5xl space-y-8 px-4">
+        <div className="space-y-2 text-center">
+          <p className="text-xs font-medium uppercase tracking-wider text-primary">
+            De ce noi
+          </p>
+          <h2 className="text-3xl font-semibold tracking-tight">
+            Mai mult decât o sală
+          </h2>
+        </div>
+        <div className="grid gap-6 sm:grid-cols-3">
+          {WHY.map((w) => {
+            const Icon = w.icon
+            return (
+              <div key={w.title} className="space-y-2 text-center">
+                <Icon className="mx-auto size-6 text-primary" />
+                <p className="font-semibold">{w.title}</p>
+                <p className="text-sm text-muted-foreground">{w.desc}</p>
+              </div>
+            )
+          })}
+        </div>
       </div>
     </section>
   )
@@ -398,8 +354,8 @@ function Contact() {
 
 /**
  * Inline Instagram glyph — `lucide-react@1` removed brand icons over
- * trademark concerns. We use the same stroke style as the lucide icons so
- * it sits naturally beside them.
+ * trademark concerns. Same stroke style as the lucide icons so it sits
+ * naturally beside them.
  */
 function InstagramGlyph(props: React.SVGProps<SVGSVGElement>) {
   return (

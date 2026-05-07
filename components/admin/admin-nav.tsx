@@ -24,7 +24,7 @@ export async function AdminNav() {
     <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur">
       <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-3 px-4 py-3">
         <div className="flex items-center gap-2">
-          <Logo href="/admin" variant="icon" />
+          <Logo href="/admin" size="sm" />
           <span className="text-sm font-semibold uppercase tracking-wider text-primary">
             Admin
           </span>

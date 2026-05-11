@@ -92,7 +92,7 @@
     "locksUntilSunday": "Disponibil de duminică",
     "noSessionsForDay": "Nicio sesiune pentru această zi",
     "rulesTitle": "Cum funcționează rezervările",
-    "rulesBody": "Sesiunile pentru săptămâna următoare se deblochează duminica la 00:00. Anularea este posibilă cu cel puțin 3 ore înainte de sesiune. Ai voie la maxim 2 modificări pe săptămână (anulări + reprogramări la un loc)."
+    "rulesBody": "Sesiunile pentru săptămâna următoare se deblochează duminica la 00:00. Anularea este posibilă cu cel puțin 3 ore înainte de sesiune. Ai dreptul la maxim 2 modificări pe săptămână (anulări + reprogramări la un loc)."
   },
   "bookingErrors": {
     "invalid_input": "Date invalide.",

@@ -1,5 +1,3 @@
-import { format } from "date-fns"
-import { ro } from "date-fns/locale"
 import { getTranslations } from "next-intl/server"
 
 import {
@@ -15,6 +13,7 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs"
 import { requireUser } from "@/lib/auth/get-user"
+import { formatStudio } from "@/lib/booking/format"
 import { createClient } from "@/lib/supabase/server"
 import type { Database } from "@/lib/supabase/database.types"
 
@@ -32,13 +31,12 @@ type BookingWithSession = BookingRow & {
 
 function BookingItem({ b }: { b: BookingWithSession }) {
   if (!b.sessions) return null
-  const start = new Date(b.sessions.start_at)
   return (
     <li className="flex items-center justify-between gap-3 rounded border p-3">
       <div className="space-y-0.5">
         <p className="font-medium">{b.sessions.classes?.name_ro ?? "Sesiune"}</p>
         <p className="text-sm text-muted-foreground">
-          {format(start, "EEEE d MMM yyyy, HH:mm", { locale: ro })}
+          {formatStudio(b.sessions.start_at, "EEEE d MMM yyyy, HH:mm")}
         </p>
       </div>
     </li>

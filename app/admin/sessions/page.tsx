@@ -1,5 +1,4 @@
-import { addDays, format, formatISO, startOfDay } from "date-fns"
-import { ro } from "date-fns/locale"
+import { addDays, formatISO, startOfDay } from "date-fns"
 import { toZonedTime } from "date-fns-tz"
 import { getTranslations } from "next-intl/server"
 
@@ -10,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { formatStudio } from "@/lib/booking/format"
 import { STUDIO_TZ } from "@/lib/booking/rules"
 import { createClient } from "@/lib/supabase/server"
 
@@ -65,7 +65,7 @@ export default async function AdminSessionsPage() {
           <Card key={day}>
             <CardHeader>
               <CardTitle className="text-base capitalize">
-                {format(date, "EEEE d MMM yyyy", { locale: ro })}
+                {formatStudio(date, "EEEE d MMM yyyy")}
               </CardTitle>
               <CardDescription>
                 {list.length} {t("sessionsCount")}
@@ -88,7 +88,7 @@ export default async function AdminSessionsPage() {
                         <div className="flex items-center justify-between gap-3">
                           <div>
                             <p className="font-medium">
-                              {format(new Date(s.start_at), "HH:mm")}
+                              {formatStudio(s.start_at, "HH:mm")}
                               {s.classes?.name_ro
                                 ? ` · ${s.classes.name_ro}`
                                 : ""}

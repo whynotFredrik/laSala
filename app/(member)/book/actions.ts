@@ -1,10 +1,9 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { format } from "date-fns"
-import { ro } from "date-fns/locale"
 import { z } from "zod"
 
+import { formatStudio } from "@/lib/booking/format"
 import { translateBookingError } from "@/lib/booking/translate-error"
 import { sendEmail } from "@/lib/email/send"
 import { createClient } from "@/lib/supabase/server"
@@ -73,8 +72,8 @@ export async function bookSessionAction(
         props: {
           name: ctx.name,
           className: ctx.className,
-          date: format(ctx.startAt, "EEEE d MMMM yyyy", { locale: ro }),
-          time: format(ctx.startAt, "HH:mm"),
+          date: formatStudio(ctx.startAt, "EEEE d MMMM yyyy"),
+          time: formatStudio(ctx.startAt, "HH:mm"),
         },
       })
     }
@@ -118,8 +117,8 @@ export async function cancelBookingAction(
       props: {
         name: ctx.name,
         className: ctx.className,
-        date: format(ctx.startAt, "EEEE d MMMM yyyy", { locale: ro }),
-        time: format(ctx.startAt, "HH:mm"),
+        date: formatStudio(ctx.startAt, "EEEE d MMMM yyyy"),
+        time: formatStudio(ctx.startAt, "HH:mm"),
       },
     })
   }
@@ -164,8 +163,8 @@ export async function rescheduleBookingAction(
       props: {
         name: ctx.name,
         className: ctx.className,
-        newDate: format(ctx.startAt, "EEEE d MMMM yyyy", { locale: ro }),
-        newTime: format(ctx.startAt, "HH:mm"),
+        newDate: formatStudio(ctx.startAt, "EEEE d MMMM yyyy"),
+        newTime: formatStudio(ctx.startAt, "HH:mm"),
       },
     })
   }

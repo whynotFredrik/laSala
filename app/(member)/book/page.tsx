@@ -1,5 +1,4 @@
-import { format, isAfter, parseISO } from "date-fns"
-import { ro } from "date-fns/locale"
+import { isAfter, parseISO } from "date-fns"
 import { getTranslations } from "next-intl/server"
 
 import {
@@ -10,6 +9,7 @@ import {
 } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { BookButton } from "@/components/member/book-button"
+import { formatStudio } from "@/lib/booking/format"
 import { nextSevenDays, isUnlocked } from "@/lib/booking/rules"
 import { requireUser } from "@/lib/auth/get-user"
 import { createClient } from "@/lib/supabase/server"
@@ -77,7 +77,8 @@ export default async function BookPage() {
       {days.map((day) => {
         const list = byDay.get(day) ?? []
         const date = parseISO(day)
-        const heading = format(date, "EEEE, d MMMM", { locale: ro })
+        // Day heading is a calendar date (no TZ), so date-fns is fine here.
+        const heading = formatStudio(date, "EEEE, d MMMM")
 
         return (
           <Card key={day}>
@@ -123,7 +124,7 @@ export default async function BookPage() {
                       >
                         <div className="space-y-0.5">
                           <p className="font-medium">
-                            {format(start, "HH:mm")}
+                            {formatStudio(start, "HH:mm")}
                             {s.classes?.name_ro
                               ? ` · ${s.classes.name_ro}`
                               : ""}

@@ -4,6 +4,8 @@ import { ro } from "date-fns/locale"
 import { notFound } from "next/navigation"
 import { getTranslations } from "next-intl/server"
 
+import { formatStudio } from "@/lib/booking/format"
+
 import {
   Card,
   CardContent,
@@ -82,14 +84,22 @@ export default async function AdminUserDetailPage({
           <CardTitle>{t("trainer")}</CardTitle>
           <CardDescription>{t("trainerDesc")}</CardDescription>
         </CardHeader>
-        <CardContent className="flex items-center justify-between gap-4">
+        <CardContent className="flex flex-wrap items-center justify-between gap-4">
           <TrainerSelect userId={profile.id} current={profile.trainer} />
-          <Link
-            href={`/admin/users/${profile.id}/meal-plan`}
-            className={buttonVariants({ variant: "outline", size: "sm" })}
-          >
-            {t("manageMealPlan")}
-          </Link>
+          <div className="flex gap-2">
+            <Link
+              href={`/admin/users/${profile.id}/recurring`}
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              {t("manageRecurring")}
+            </Link>
+            <Link
+              href={`/admin/users/${profile.id}/meal-plan`}
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              {t("manageMealPlan")}
+            </Link>
+          </div>
         </CardContent>
       </Card>
 
@@ -154,11 +164,7 @@ export default async function AdminUserDetailPage({
                   <span>
                     {b.sessions?.classes?.name_ro ?? "Sesiune"} ·{" "}
                     {b.sessions?.start_at
-                      ? format(
-                          new Date(b.sessions.start_at),
-                          "EEEE d MMM, HH:mm",
-                          { locale: ro },
-                        )
+                      ? formatStudio(b.sessions.start_at, "EEEE d MMM, HH:mm")
                       : ""}
                   </span>
                   <span className="text-muted-foreground">{b.status}</span>

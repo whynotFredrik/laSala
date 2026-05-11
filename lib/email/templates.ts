@@ -36,6 +36,13 @@ export type TemplatePropsMap = {
     newDate: string
     newTime: string
   }
+  bookingReminder: {
+    name: string
+    className: string
+    date: string
+    time: string
+    days: 1 | 3
+  }
   planRequestReceived: {
     name: string
     planName: string
@@ -110,6 +117,23 @@ export const TEMPLATES: {
       <p>Noua ta rezervare:</p>
       <p><strong>Curs:</strong> ${escape(p.className)}</p>
       <p><strong>Data:</strong> ${escape(p.newDate)} la ora ${escape(p.newTime)}</p>
+    `,
+    sender: "bookings",
+  }),
+
+  bookingReminder: (p) => ({
+    subject:
+      p.days === 1
+        ? "Mâine este ultima ta oră din abonament"
+        : `În ${p.days} zile este ultima ta oră din abonament`,
+    heading: "Ultima ta oră din abonamentul curent",
+    body: `
+      <p>Salut, ${escape(p.name)}!</p>
+      <p>Ai folosit toate sesiunile din abonamentul curent. Ultima ta rezervare este:</p>
+      <p><strong>Curs:</strong> ${escape(p.className)}</p>
+      <p><strong>Data:</strong> ${escape(p.date)}</p>
+      <p><strong>Ora:</strong> ${escape(p.time)}</p>
+      <p>După această sesiune ai nevoie de un abonament nou pentru a putea rezerva în continuare. Îl poți solicita din aplicație, în pagina <strong>Planuri</strong>.</p>
     `,
     sender: "bookings",
   }),

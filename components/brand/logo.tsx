@@ -4,14 +4,14 @@ import Link from "next/link"
 import { cn } from "@/lib/utils"
 
 const SIZES = {
-  sm: "size-8",
-  md: "size-10",
-  lg: "size-14",
+  sm: "size-12", //  48px
+  md: "size-14", //  56px (matches the h-14 sticky header)
+  lg: "size-16", //  64px
 } as const
 
 /**
- * Brand mark. Just the icon — no wordmark text. The icon SVG already
- * contains the brand identity, so adjacent text would be redundant.
+ * Brand mark. Just the icon — no wordmark text. The icon SVG carries its
+ * own rounded corners so we don't apply additional rounding here.
  *
  * Renders an `<a>` so the logo is always a link back home.
  */
@@ -33,9 +33,9 @@ export function Logo({
       <Image
         src="/icon.svg"
         alt="Lasala Studio"
-        width={56}
-        height={56}
-        className={cn(SIZES[size], "rounded-md")}
+        width={64}
+        height={64}
+        className={cn(SIZES[size], "block")}
         priority
       />
     </Link>

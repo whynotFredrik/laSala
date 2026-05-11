@@ -5,7 +5,15 @@ import { useTranslations } from "next-intl"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 
 import {
   deleteScheduleSlotAction,
@@ -36,60 +44,71 @@ export type ScheduleSlot = {
   trainer: (typeof TRAINERS)[number] | null
 }
 
+type Draft = {
+  id?: string
+  dayOfWeek: number
+  startHour: number
+  durationMin: number
+  capacity: number
+  trainer: (typeof TRAINERS)[number]
+  isEnabled: boolean
+}
+
+function emptyDraft(): Draft {
+  return {
+    dayOfWeek: 0,
+    startHour: 18,
+    durationMin: 60,
+    capacity: 6,
+    trainer: "Eugen",
+    isEnabled: true,
+  }
+}
+
+function slotToDraft(s: ScheduleSlot): Draft {
+  return {
+    id: s.id,
+    dayOfWeek: s.day_of_week,
+    startHour: s.start_hour,
+    durationMin: s.duration_min,
+    capacity: s.capacity,
+    trainer: s.trainer ?? "Eugen",
+    isEnabled: s.is_enabled,
+  }
+}
+
 export function ScheduleEditor({ slots }: { slots: ScheduleSlot[] }) {
   const t = useTranslations("adminSchedule")
   const tDays = useTranslations("days")
   const [pending, start] = useTransition()
-  const [draft, setDraft] = useState({
-    dayOfWeek: 0,
-    startHour: 18,
-    startMinute: 0,
-    durationMin: 60,
-    capacity: 6,
-    trainer: "Eugen" as (typeof TRAINERS)[number],
-  })
+  const [draft, setDraft] = useState<Draft>(emptyDraft())
+  const [editing, setEditing] = useState<Draft | null>(null)
 
   const grouped = new Map<number, ScheduleSlot[]>()
   for (const day of DAYS) grouped.set(day.value, [])
   for (const s of slots) grouped.get(s.day_of_week)?.push(s)
   for (const list of grouped.values()) {
-    list.sort(
-      (a, b) =>
-        a.start_hour * 60 +
-        a.start_minute -
-        (b.start_hour * 60 + b.start_minute),
-    )
+    list.sort((a, b) => a.start_hour - b.start_hour)
   }
 
-  const addSlot = () =>
+  const persist = (input: Draft) =>
     start(async () => {
       const res = await upsertScheduleSlotAction({
-        ...draft,
-        startMinute: draft.startMinute as 0 | 15 | 30 | 45,
-        isEnabled: true,
+        ...input,
+        startMinute: 0, // all sessions start on the hour
       })
       if (res.status === "error") toast.error(t("saveFailed"))
-      else toast.success(t("saved"))
+      else {
+        toast.success(t("saved"))
+        if (!input.id) setDraft(emptyDraft()) // reset add form
+        setEditing(null)
+      }
     })
 
   const toggle = (slot: ScheduleSlot) =>
-    start(async () => {
-      if (!slot.trainer) {
-        toast.error(t("missingTrainer"))
-        return
-      }
-      const res = await upsertScheduleSlotAction({
-        id: slot.id,
-        dayOfWeek: slot.day_of_week,
-        startHour: slot.start_hour,
-        startMinute: slot.start_minute as 0 | 15 | 30 | 45,
-        durationMin: slot.duration_min,
-        capacity: slot.capacity,
-        classId: slot.class_id,
-        trainer: slot.trainer,
-        isEnabled: !slot.is_enabled,
-      })
-      if (res.status === "error") toast.error(t("saveFailed"))
+    persist({
+      ...slotToDraft(slot),
+      isEnabled: !slot.is_enabled,
     })
 
   const remove = (id: string) =>
@@ -103,7 +122,7 @@ export function ScheduleEditor({ slots }: { slots: ScheduleSlot[] }) {
     <div className="space-y-6">
       <section className="rounded border p-3">
         <h3 className="text-sm font-medium">{t("addSlot")}</h3>
-        <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_1fr_1fr_1fr_1fr_auto]">
+        <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_1fr_1fr_1fr_auto]">
           <select
             className="h-9 rounded border bg-background px-2 text-sm"
             value={draft.dayOfWeek}
@@ -125,24 +144,8 @@ export function ScheduleEditor({ slots }: { slots: ScheduleSlot[] }) {
             onChange={(e) =>
               setDraft((d) => ({ ...d, startHour: Number(e.target.value) }))
             }
-            placeholder="HH"
+            placeholder={t("hour")}
           />
-          <select
-            className="h-9 rounded border bg-background px-2 text-sm"
-            value={draft.startMinute}
-            onChange={(e) =>
-              setDraft((d) => ({
-                ...d,
-                startMinute: Number(e.target.value),
-              }))
-            }
-          >
-            {[0, 15, 30, 45].map((m) => (
-              <option key={m} value={m}>
-                :{m.toString().padStart(2, "0")}
-              </option>
-            ))}
-          </select>
           <Input
             type="number"
             min={15}
@@ -179,7 +182,11 @@ export function ScheduleEditor({ slots }: { slots: ScheduleSlot[] }) {
               </option>
             ))}
           </select>
-          <Button type="button" onClick={addSlot} disabled={pending}>
+          <Button
+            type="button"
+            onClick={() => persist(draft)}
+            disabled={pending}
+          >
             {t("add")}
           </Button>
         </div>
@@ -202,9 +209,8 @@ export function ScheduleEditor({ slots }: { slots: ScheduleSlot[] }) {
                     className="flex items-center justify-between gap-3 p-2 text-sm"
                   >
                     <div>
-                      <span className="font-medium">
-                        {s.start_hour.toString().padStart(2, "0")}:
-                        {s.start_minute.toString().padStart(2, "0")}
+                      <span className="font-mono font-semibold">
+                        {s.start_hour.toString().padStart(2, "0")}:00
                       </span>{" "}
                       <span className="text-muted-foreground">
                         · {s.duration_min}min · {s.capacity}{" "}
@@ -220,6 +226,15 @@ export function ScheduleEditor({ slots }: { slots: ScheduleSlot[] }) {
                       ) : null}
                     </div>
                     <div className="flex gap-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        disabled={pending}
+                        onClick={() => setEditing(slotToDraft(s))}
+                      >
+                        {t("edit")}
+                      </Button>
                       <Button
                         type="button"
                         variant="ghost"
@@ -246,6 +261,126 @@ export function ScheduleEditor({ slots }: { slots: ScheduleSlot[] }) {
           </section>
         )
       })}
+
+      <Dialog
+        open={editing !== null}
+        onOpenChange={(open) => !open && setEditing(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("editSlot")}</DialogTitle>
+          </DialogHeader>
+          {editing ? (
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <Label>{t("day")}</Label>
+                <select
+                  className="h-9 w-full rounded border bg-background px-2 text-sm"
+                  value={editing.dayOfWeek}
+                  onChange={(e) =>
+                    setEditing((d) =>
+                      d ? { ...d, dayOfWeek: Number(e.target.value) } : d,
+                    )
+                  }
+                >
+                  {DAYS.map((d) => (
+                    <option key={d.value} value={d.value}>
+                      {tDays(d.key)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>{t("hour")}</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={23}
+                    value={editing.startHour}
+                    onChange={(e) =>
+                      setEditing((d) =>
+                        d ? { ...d, startHour: Number(e.target.value) } : d,
+                      )
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>{t("minutes")}</Label>
+                  <Input
+                    type="number"
+                    min={15}
+                    max={240}
+                    value={editing.durationMin}
+                    onChange={(e) =>
+                      setEditing((d) =>
+                        d
+                          ? { ...d, durationMin: Number(e.target.value) }
+                          : d,
+                      )
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>{t("capacity")}</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={50}
+                    value={editing.capacity}
+                    onChange={(e) =>
+                      setEditing((d) =>
+                        d ? { ...d, capacity: Number(e.target.value) } : d,
+                      )
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>{t("trainer")}</Label>
+                  <select
+                    className="h-9 w-full rounded border bg-background px-2 text-sm"
+                    value={editing.trainer}
+                    onChange={(e) =>
+                      setEditing((d) =>
+                        d
+                          ? {
+                              ...d,
+                              trainer: e.target
+                                .value as (typeof TRAINERS)[number],
+                            }
+                          : d,
+                      )
+                    }
+                  >
+                    {TRAINERS.map((tr) => (
+                      <option key={tr} value={tr}>
+                        {tr}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+          ) : null}
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setEditing(null)}
+              disabled={pending}
+            >
+              {t("cancel")}
+            </Button>
+            <Button
+              type="button"
+              onClick={() => editing && persist(editing)}
+              disabled={pending}
+            >
+              {t("save")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

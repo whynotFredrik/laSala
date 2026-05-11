@@ -692,6 +692,55 @@ export type Database = {
           },
         ]
       }
+      recurring_bookings: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          schedule_template_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          schedule_template_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          schedule_template_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_bookings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_bookings_schedule_template_id_fkey"
+            columns: ["schedule_template_id"]
+            isOneToOne: false
+            referencedRelation: "schedule_template"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_bookings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       schedule_template: {
         Row: {
           capacity: number
@@ -850,6 +899,27 @@ export type Database = {
       }
       book_session: {
         Args: { p_session_id: string }
+        Returns: {
+          booked_at: string
+          cancelled_at: string | null
+          id: string
+          iso_week: string
+          notes: string | null
+          reschedule_count_iso_week: number
+          rescheduled_at: string | null
+          session_id: string
+          status: Database["public"]["Enums"]["booking_status"]
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "bookings"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      book_session_for: {
+        Args: { p_session_id: string; p_user_id: string }
         Returns: {
           booked_at: string
           cancelled_at: string | null

@@ -1,5 +1,3 @@
-import { format } from "date-fns"
-import { ro } from "date-fns/locale"
 import { getTranslations } from "next-intl/server"
 
 import {
@@ -13,6 +11,7 @@ import {
   RescheduleDialog,
   type CandidateSession,
 } from "@/components/member/reschedule-dialog"
+import { formatStudio } from "@/lib/booking/format"
 import { isCancellable, nextSevenDays, isUnlocked } from "@/lib/booking/rules"
 import { createClient } from "@/lib/supabase/server"
 import type { Database } from "@/lib/supabase/database.types"
@@ -89,7 +88,6 @@ export async function UpcomingBookings({
             {bookings.map((b) => {
               const session = b.sessions
               if (!session) return null
-              const start = new Date(session.start_at)
               const cancellable = isCancellable(session.start_at)
               return (
                 <li
@@ -101,7 +99,7 @@ export async function UpcomingBookings({
                       {session.classes?.name_ro ?? "Sesiune"}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      {format(start, "EEEE d MMM, HH:mm", { locale: ro })}
+                      {formatStudio(session.start_at, "EEEE d MMM, HH:mm")}
                     </p>
                   </div>
                   {cancellable ? (

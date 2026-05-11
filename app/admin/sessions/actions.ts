@@ -32,14 +32,25 @@ function mondayOf(anchor: Date) {
 }
 
 export type GenerateSessionsResult =
-  | { status: "ok"; created: number; skipped: number }
+  | {
+      status: "ok"
+      created: number
+      skipped: number
+      recurringBooked: number
+      recurringSkipped: number
+    }
   | { status: "error"; message: string }
 
 /**
  * Reads the schedule template and creates `sessions` rows for next week
- * (Mon..Sun). Idempotent: a unique index on (session_date, start_at) means
- * re-running just upserts the existing row count via skipped++. Each session
- * gets `unlock_at` set per the Sunday-unlock rule.
+ * (Mon..Sun). Idempotent — re-running just bumps `skipped` for already-existing
+ * (date, time, trainer) tuples.
+ *
+ * After each session is created, every member with an active recurring
+ * pin pointing at that slot's template is auto-booked via the
+ * `book_session_for` Postgres function. Auto-bookings that fail (no
+ * active plan, plan expires before session, sessions exhausted, etc.) are
+ * counted into `recurringSkipped` so the admin can see the result.
  */
 export async function generateNextWeekSessionsAction(): Promise<GenerateSessionsResult> {
   await requireAdmin()
@@ -56,25 +67,39 @@ export async function generateNextWeekSessionsAction(): Promise<GenerateSessions
     return { status: "error", message: "template_load_failed" }
   }
 
+  // Preload recurring-bookings grouped by template id so we don't hit the
+  // DB once per slot per recurring user.
+  const { data: recurringRows } = await service
+    .from("recurring_bookings")
+    .select("user_id, schedule_template_id")
+    .eq("is_active", true)
+  const recurringByTemplate = new Map<string, string[]>()
+  for (const r of recurringRows ?? []) {
+    const list = recurringByTemplate.get(r.schedule_template_id) ?? []
+    list.push(r.user_id)
+    recurringByTemplate.set(r.schedule_template_id, list)
+  }
+
   const slots = template as ScheduleSlot[]
   const weekStartLocal = mondayOf(addDays(new Date(), 7))
 
   let created = 0
   let skipped = 0
+  let recurringBooked = 0
+  let recurringSkipped = 0
 
   for (const slot of slots) {
     const dayLocal = addDays(weekStartLocal, slot.day_of_week)
     const sessionDate = formatISO(dayLocal, { representation: "date" })
 
-    // Compose the start instant in studio local time, convert to UTC.
     const localStart = new Date(dayLocal)
     localStart.setHours(slot.start_hour, slot.start_minute, 0, 0)
     const startAt = fromZonedTime(localStart, STUDIO_TZ)
     const endAt = new Date(startAt.getTime() + slot.duration_min * 60_000)
     const unlockAt = unlockAtFor(localStart)
 
-    // Check existence — uniqueness is now per (date, start, trainer), so
-    // multiple trainers can have parallel sessions at the same time.
+    let sessionId: string | null = null
+
     const { data: existing } = await service
       .from("sessions")
       .select("id")
@@ -84,26 +109,42 @@ export async function generateNextWeekSessionsAction(): Promise<GenerateSessions
       .maybeSingle()
 
     if (existing) {
+      sessionId = existing.id
       skipped++
-      continue
+    } else {
+      const { data: inserted, error } = await service
+        .from("sessions")
+        .insert({
+          class_id: slot.class_id,
+          session_date: sessionDate,
+          start_at: startAt.toISOString(),
+          end_at: endAt.toISOString(),
+          capacity: slot.capacity,
+          unlock_at: unlockAt.toISOString(),
+          trainer: slot.trainer,
+        })
+        .select("id")
+        .single()
+      if (error || !inserted) {
+        return { status: "error", message: error?.message ?? "insert_failed" }
+      }
+      sessionId = inserted.id
+      created++
     }
 
-    const { error } = await service.from("sessions").insert({
-      class_id: slot.class_id,
-      session_date: sessionDate,
-      start_at: startAt.toISOString(),
-      end_at: endAt.toISOString(),
-      capacity: slot.capacity,
-      unlock_at: unlockAt.toISOString(),
-      trainer: slot.trainer,
-    })
-    if (error) {
-      // Stop on first hard error so the admin sees it; partial creation is OK.
-      return { status: "error", message: error.message }
+    // Auto-book everyone pinned to this slot. Failures are non-fatal —
+    // e.g. plan expired, already booked that day, etc.
+    const recurringUserIds = recurringByTemplate.get(slot.id) ?? []
+    for (const userId of recurringUserIds) {
+      const { error: rpcErr } = await service.rpc("book_session_for", {
+        p_user_id: userId,
+        p_session_id: sessionId,
+      })
+      if (rpcErr) recurringSkipped++
+      else recurringBooked++
     }
-    created++
   }
 
   revalidatePath("/admin/sessions")
-  return { status: "ok", created, skipped }
+  return { status: "ok", created, skipped, recurringBooked, recurringSkipped }
 }

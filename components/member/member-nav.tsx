@@ -14,8 +14,8 @@ export async function MemberNav() {
 
   return (
     <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur">
-      <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3">
-        <Logo href="/home" size="sm" />
+      <div className="mx-auto flex h-14 max-w-3xl items-center gap-3 px-4">
+        <Logo href="/home" size="md" />
         <nav className="-mx-1 ml-1 flex flex-1 items-center gap-1 overflow-x-auto px-1 text-sm">
           <Link
             href="/home"

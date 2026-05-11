@@ -21,7 +21,12 @@ export function GenerateNextWeekButton() {
           if (res.status === "error") toast.error(t("generateFailed"))
           else
             toast.success(
-              t("generated", { created: res.created, skipped: res.skipped }),
+              t("generated", {
+                created: res.created,
+                skipped: res.skipped,
+                recurringBooked: res.recurringBooked,
+                recurringSkipped: res.recurringSkipped,
+              }),
             )
         })
       }

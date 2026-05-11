@@ -1,8 +1,7 @@
 "use client"
 
 import { useState, useTransition } from "react"
-import { format, parseISO } from "date-fns"
-import { ro } from "date-fns/locale"
+import { parseISO } from "date-fns"
 import { useTranslations } from "next-intl"
 import { toast } from "sonner"
 
@@ -15,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { formatStudio } from "@/lib/booking/format"
 import { rescheduleBookingAction } from "@/app/(member)/book/actions"
 
 export type CandidateSession = {
@@ -97,11 +97,10 @@ export function RescheduleDialog({
               return (
                 <section key={day} className="space-y-2">
                   <p className="text-sm font-medium capitalize">
-                    {format(date, "EEEE, d MMMM", { locale: ro })}
+                    {formatStudio(date, "EEEE, d MMMM")}
                   </p>
                   <ul className="space-y-1">
                     {list.map((c) => {
-                      const start = new Date(c.start_at)
                       return (
                         <li key={c.id}>
                           <label className="flex items-center gap-2 rounded border p-2 text-sm hover:bg-muted/50">
@@ -114,7 +113,7 @@ export function RescheduleDialog({
                               onChange={() => setSelected(c.id)}
                             />
                             <span className="font-medium">
-                              {format(start, "HH:mm")}
+                              {formatStudio(c.start_at, "HH:mm")}
                             </span>
                             {c.class_name ? (
                               <span className="text-muted-foreground">

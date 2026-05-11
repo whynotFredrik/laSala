@@ -1,22 +1,13 @@
 import Link from "next/link"
 import { getTranslations } from "next-intl/server"
 
+import { AdminNavLinks } from "@/components/admin/admin-nav-links"
 import { Logo } from "@/components/brand/logo"
 import { SignOutButton } from "@/components/member/sign-out-button"
 
-const LINKS = [
-  { href: "/admin", key: "dashboard" },
-  { href: "/admin/users", key: "users" },
-  { href: "/admin/plan-requests", key: "planRequests" },
-  { href: "/admin/sessions", key: "sessions" },
-  { href: "/admin/schedule", key: "schedule" },
-  { href: "/admin/plan-tiers", key: "planTiers" },
-  { href: "/admin/gdpr", key: "gdpr" },
-] as const
-
 /**
- * Top nav for admin pages. Strictly server-rendered; the active-tab
- * highlight is intentionally omitted so we can render in a Server Component.
+ * Top nav for admin pages. The active-section underline lives in the
+ * Client subcomponent `<AdminNavLinks>` so it can read the pathname.
  */
 export async function AdminNav() {
   const t = await getTranslations("adminNav")
@@ -29,17 +20,7 @@ export async function AdminNav() {
             Admin
           </span>
         </div>
-        <nav className="flex flex-wrap items-center gap-1 text-sm">
-          {LINKS.map((l) => (
-            <Link
-              key={l.href}
-              href={l.href}
-              className="rounded px-2 py-1 hover:bg-muted"
-            >
-              {t(l.key)}
-            </Link>
-          ))}
-        </nav>
+        <AdminNavLinks />
         <div className="ml-auto flex items-center gap-2">
           <Link
             href="/home"

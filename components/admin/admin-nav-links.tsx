@@ -17,16 +17,18 @@ const LINKS = [
 ] as const
 
 /**
- * Admin nav link row. Underlines the active section. The "/admin" link is
- * only active on exact-match because every admin page has it as a prefix —
- * otherwise it'd always look active.
+ * Admin nav link row. Scrolls horizontally on narrow viewports so it can't
+ * wrap and overlap the page content below the sticky header.
+ *
+ * The "/admin" link is only active on exact match — every other admin page
+ * has it as a prefix, so a `startsWith` check would always say active.
  */
 export function AdminNavLinks() {
   const t = useTranslations("adminNav")
   const pathname = usePathname()
 
   return (
-    <nav className="flex flex-wrap items-center gap-1 self-stretch text-sm">
+    <nav className="-mx-1 flex min-w-0 flex-1 items-center gap-1 self-stretch overflow-x-auto px-1 text-sm">
       {LINKS.map((link) => {
         const active =
           link.href === "/admin"

@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { redirect } from "next/navigation"
 import {
   Activity,
   Apple,
@@ -31,8 +32,26 @@ import { cn } from "@/lib/utils"
 /**
  * Public landing page. Public — middleware doesn't gate `/`. Logged-in users
  * see a single "Vezi contul" CTA in the header instead of the auth buttons.
+ *
+ * Fallback for password-reset / email-confirm links: if Supabase's email
+ * dropped the user at `/` with a `code` query param (happens when the
+ * configured Site URL doesn't include `/auth/callback`), we forward to the
+ * real callback handler so the recovery session is still established.
  */
-export default async function MarketingPage() {
+export default async function MarketingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ code?: string; type?: string; next?: string }>
+}) {
+  const sp = await searchParams
+  if (sp.code) {
+    const next = sp.type === "recovery" ? "/reset-password" : (sp.next ?? "/home")
+    const qs = new URLSearchParams({ code: sp.code })
+    if (sp.type) qs.set("type", sp.type)
+    qs.set("next", next)
+    redirect(`/auth/callback?${qs.toString()}`)
+  }
+
   const supabase = await createClient()
   const {
     data: { user },

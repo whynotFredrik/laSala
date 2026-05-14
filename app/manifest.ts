@@ -3,22 +3,26 @@ import type { MetadataRoute } from "next"
 import { BUSINESS } from "@/lib/constants"
 
 /**
- * PWA manifest. The slate base color from `app/globals.css` is roughly
- * #020817 in dark mode / #ffffff in light. We pin background to the light
- * value so the splash screen on iOS/Android matches a fresh launch.
+ * PWA manifest. Lists the icons that exist in `public/`:
+ *   - icon.svg               vector, used wherever browsers prefer SVG
+ *   - icon-192.png           Android home-screen, install dialog
+ *   - icon-512.png           Android splash screen
+ *   - icon-maskable-512.png  Adaptive icon (safe zone respected)
+ *
+ * All four are required for Chrome on Android to mint a real WebAPK
+ * (signed by Google) instead of falling back to a shortcut that Play
+ * Protect flags as unsafe.
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: BUSINESS.name,
     short_name: "Lasala",
     description: `${BUSINESS.tagline}. Rezervări și abonamente pentru ${BUSINESS.name}.`,
-    start_url: "/home",
+    start_url: "/",
     scope: "/",
     display: "standalone",
     orientation: "portrait",
     background_color: "#ffffff",
-    // Brand red (matches `--primary` in globals.css). Used by Android
-    // for the address bar tint and the splash-screen accent.
     theme_color: "#dc2626",
     lang: "ro",
     dir: "ltr",

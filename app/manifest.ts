@@ -18,7 +18,11 @@ export default function manifest(): MetadataRoute.Manifest {
     name: BUSINESS.name,
     short_name: "Lasala",
     description: `${BUSINESS.tagline}. Rezervări și abonamente pentru ${BUSINESS.name}.`,
-    start_url: "/",
+    // Stable identity for the PWA. Forces Chrome to re-mint the WebAPK
+    // (with current targetSdkVersion) instead of upgrading the old one
+    // that's tripping Play Protect.
+    id: "/?source=pwa",
+    start_url: "/?source=pwa",
     scope: "/",
     display: "standalone",
     orientation: "portrait",

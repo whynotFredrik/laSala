@@ -22,7 +22,7 @@ export async function AdminNav() {
         <AdminNavLinks />
         <Link
           href="/home"
-          className="hidden whitespace-nowrap rounded px-2 py-1 text-sm text-muted-foreground hover:bg-muted lg:inline"
+          className="whitespace-nowrap rounded px-2 py-1 text-sm text-muted-foreground hover:bg-muted"
         >
           {t("memberView")}
         </Link>

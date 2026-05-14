@@ -1,6 +1,7 @@
 "use server"
 
 import { forgotPasswordSchema } from "@/lib/auth/schemas"
+import { siteUrl } from "@/lib/constants"
 import { createClient } from "@/lib/supabase/server"
 
 export type ForgotPasswordState =
@@ -25,9 +26,11 @@ export async function forgotPasswordAction(
   }
 
   const supabase = await createClient()
-  const redirectTo = `${
-    process.env.NEXT_PUBLIC_SITE_URL ?? ""
-  }/auth/callback?type=recovery&next=/reset-password`
+  // siteUrl() guarantees an absolute https URL even if NEXT_PUBLIC_SITE_URL
+  // is unset or scheme-less. Supabase rejects relative `redirectTo` values
+  // silently and falls back to the dashboard's Site URL — which was the
+  // localhost default that produced the broken links.
+  const redirectTo = `${siteUrl()}/auth/callback?type=recovery&next=/reset-password`
 
   await supabase.auth.resetPasswordForEmail(parsed.data.email, { redirectTo })
 

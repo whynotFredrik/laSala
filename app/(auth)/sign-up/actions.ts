@@ -4,6 +4,7 @@ import { redirect } from "next/navigation"
 
 import { normalisePhone, signUpSchema } from "@/lib/auth/schemas"
 import { assignTrainer } from "@/lib/auth/trainers"
+import { siteUrl } from "@/lib/constants"
 import { createClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/service"
 
@@ -70,9 +71,7 @@ export async function signUpAction(
         first_name: firstName,
         sex,
       },
-      emailRedirectTo: `${
-        process.env.NEXT_PUBLIC_SITE_URL ?? ""
-      }/auth/callback?next=/home`,
+      emailRedirectTo: `${siteUrl()}/auth/callback?next=/home`,
     },
   })
 

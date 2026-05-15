@@ -1,9 +1,12 @@
 import "server-only"
 
+import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 
 import { createClient } from "@/lib/supabase/server"
 import type { Database } from "@/lib/supabase/database.types"
+
+export const ADMIN_PREVIEW_COOKIE = "admin_preview"
 
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"]
 
@@ -70,11 +73,40 @@ export async function requireAdmin() {
  * Like requireUser but additionally bounces admins away. Admins don't have
  * member-facing functionality (no bookings, no plan, no progress); when
  * they hit a member route we send them to /admin where they belong.
+ *
+ * Exception: if the `admin_preview` cookie is set (admin opted into preview
+ * mode for testing), admins are allowed through so they can see the member
+ * UI exactly as members do.
  */
 export async function requireMember() {
   const { user, profile } = await requireUser()
   if (profile.role === "admin") {
-    redirect("/admin")
+    const cookieStore = await cookies()
+    const preview = cookieStore.get(ADMIN_PREVIEW_COOKIE)?.value === "1"
+    if (!preview) {
+      redirect("/admin")
+    }
   }
   return { user, profile }
+}
+
+/**
+ * Returns true if the current user is an admin currently in member-preview
+ * mode. Use to render the "exit preview" banner. Returns false for normal
+ * members (cookie absent or user is genuinely a member).
+ */
+export async function isAdminPreviewing(): Promise<boolean> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return false
+  const cookieStore = await cookies()
+  if (cookieStore.get(ADMIN_PREVIEW_COOKIE)?.value !== "1") return false
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single()
+  return profile?.role === "admin"
 }

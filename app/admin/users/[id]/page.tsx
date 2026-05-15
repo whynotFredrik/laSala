@@ -17,6 +17,7 @@ import { formatStudio } from "@/lib/booking/format"
 import { createClient } from "@/lib/supabase/server"
 
 import { AdjustPlanForm } from "./adjust-plan-form"
+import { DeleteUserForm } from "./delete-user-form"
 import { DietarySummary } from "./dietary-summary"
 import { TrainerSelect } from "./trainer-select"
 
@@ -373,6 +374,16 @@ export default async function AdminUserDetailPage({
         </CardHeader>
         <CardContent>
           <DietarySummary dietary={dietary} />
+        </CardContent>
+      </Card>
+
+      <Card className="border-destructive/40">
+        <CardHeader>
+          <CardTitle className="text-destructive">{t("dangerZone")}</CardTitle>
+          <CardDescription>{t("dangerZoneDesc")}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <DeleteUserForm userId={profile.id} email={profile.email} />
         </CardContent>
       </Card>
     </div>

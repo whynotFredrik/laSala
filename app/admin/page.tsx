@@ -1,6 +1,7 @@
 import { startOfMonth } from "date-fns"
 import { getTranslations } from "next-intl/server"
 
+import { Button } from "@/components/ui/button"
 import {
   Card,
   CardContent,
@@ -9,6 +10,8 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { createClient } from "@/lib/supabase/server"
+
+import { enterMemberPreviewAction } from "./actions"
 
 export default async function AdminDashboard() {
   const supabase = await createClient()
@@ -58,9 +61,16 @@ export default async function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
-        <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
+          <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
+        </div>
+        <form action={enterMemberPreviewAction}>
+          <Button type="submit" variant="outline" size="sm">
+            {t("enterMemberPreview")}
+          </Button>
+        </form>
       </header>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {stats.map((s) => (

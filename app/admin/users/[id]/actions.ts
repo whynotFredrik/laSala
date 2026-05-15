@@ -1,6 +1,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
+import { redirect } from "next/navigation"
 import { z } from "zod"
 
 import { requireAdmin } from "@/lib/auth/get-user"
@@ -108,4 +109,80 @@ export async function setUserTrainerAction(input: {
   }
   revalidatePath(`/admin/users/${input.userId}`)
   return { status: "ok" as const }
+}
+
+const deleteUserSchema = z.object({
+  userId: z.string().uuid(),
+  confirmEmail: z.string().email(),
+})
+
+/**
+ * Hard-delete a user. Removes the auth user via the admin API; the
+ * `profiles` row and every owned row (bookings, plans, plan_requests,
+ * weight_logs, nutrition_logs, progress_photos, dietary_questionnaires,
+ * meal_plans, recurring_bookings, freeze_periods) cascade away via the
+ * `on delete cascade` foreign keys.
+ *
+ * Storage files (progress photos) are NOT cascaded — they live in
+ * Supabase Storage. We list & delete them explicitly first.
+ *
+ * Two guardrails:
+ *   1. Caller must be admin.
+ *   2. The admin must retype the target user's email — defends against
+ *      a misclick blowing away the wrong account.
+ */
+export async function deleteUserAction(formData: FormData) {
+  const parsed = deleteUserSchema.safeParse({
+    userId: formData.get("userId"),
+    confirmEmail: formData.get("confirmEmail"),
+  })
+  if (!parsed.success) {
+    return { status: "error" as const, message: "invalid_input" }
+  }
+
+  const { user: caller } = await requireAdmin()
+  if (caller.id === parsed.data.userId) {
+    return { status: "error" as const, message: "cannot_delete_self" }
+  }
+
+  const service = createServiceClient()
+
+  // Verify the email matches before we touch anything.
+  const { data: target } = await service
+    .from("profiles")
+    .select("id, email")
+    .eq("id", parsed.data.userId)
+    .maybeSingle()
+  if (!target) {
+    return { status: "error" as const, message: "user_not_found" }
+  }
+  if (
+    target.email?.toLowerCase().trim() !==
+    parsed.data.confirmEmail.toLowerCase().trim()
+  ) {
+    return { status: "error" as const, message: "email_mismatch" }
+  }
+
+  // Clean up storage objects (cascade FKs only handle DB rows).
+  const { data: photoRows } = await service
+    .from("progress_photos")
+    .select("front_path, side_path, back_path")
+    .eq("user_id", parsed.data.userId)
+  const paths = (photoRows ?? []).flatMap((r) =>
+    [r.front_path, r.side_path, r.back_path].filter(
+      (p): p is string => !!p,
+    ),
+  )
+  if (paths.length > 0) {
+    await service.storage.from("progress-photos").remove(paths)
+  }
+
+  // Delete the auth user; cascade does the rest.
+  const { error } = await service.auth.admin.deleteUser(parsed.data.userId)
+  if (error) {
+    return { status: "error" as const, message: "delete_failed" }
+  }
+
+  revalidatePath("/admin/users")
+  redirect("/admin/users")
 }

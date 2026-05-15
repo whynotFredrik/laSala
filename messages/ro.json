@@ -279,7 +279,13 @@
     "activePlans": "Abonamente active",
     "bookingsThisMonth": "Rezervări luna aceasta",
     "activeFreezes": "Înghețări active",
-    "pendingRequests": "Cereri de planuri în așteptare"
+    "pendingRequests": "Cereri de planuri în așteptare",
+    "enterMemberPreview": "Vedere client"
+  },
+  "adminPreview": {
+    "title": "Vedere client",
+    "subtitle": "Vezi aplicația exact așa cum o vede un membru. Acțiunile (rezervări, plăți) se aplică pe contul tău.",
+    "exit": "Ieși din vederea client"
   },
   "adminUsers": {
     "title": "Utilizatori",
@@ -324,7 +330,20 @@
     "trainerDesc": "Asignarea inițială se face automat la înregistrare. Schimbă manual aici dacă e cazul.",
     "trainerChanged": "Antrenor schimbat",
     "manageMealPlan": "Plan alimentar",
-    "manageRecurring": "Programări recurente"
+    "manageRecurring": "Programări recurente",
+    "dangerZone": "Zonă periculoasă",
+    "dangerZoneDesc": "Acțiuni ireversibile. Toate datele membrului (rezervări, abonamente, poze, măsurători) vor fi șterse definitiv.",
+    "deleteUser": "Șterge contul",
+    "deleteUserWarning": "Ești pe cale să ștergi definitiv acest cont și toate datele asociate.",
+    "deleteUserHint": "Pentru confirmare, scrie adresa de email a membrului: {email}",
+    "typeEmailToConfirm": "Confirmă cu emailul membrului",
+    "deleteUserConfirm": "Da, șterge definitiv",
+    "deleting": "Se șterge…",
+    "cancel": "Anulează",
+    "cannot_delete_self": "Nu îți poți șterge propriul cont.",
+    "user_not_found": "Membrul nu a fost găsit.",
+    "email_mismatch": "Emailul introdus nu coincide. Reîncearcă.",
+    "delete_failed": "Ștergerea a eșuat. Reîncearcă."
   },
   "adminRecurring": {
     "title": "Programări recurente",

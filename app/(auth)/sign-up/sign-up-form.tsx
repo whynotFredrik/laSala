@@ -103,6 +103,34 @@ export function SignUpForm() {
         </div>
       </fieldset>
 
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="age">{t("age")}</Label>
+          <Input
+            id="age"
+            name="age"
+            type="number"
+            inputMode="numeric"
+            min={13}
+            max={100}
+            required
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="heightCm">{t("heightCm")}</Label>
+          <Input
+            id="heightCm"
+            name="heightCm"
+            type="number"
+            inputMode="decimal"
+            step="0.1"
+            min={120}
+            max={230}
+            required
+          />
+        </div>
+      </div>
+
       <div className="space-y-2">
         <Label htmlFor="password">{t("password")}</Label>
         <Input

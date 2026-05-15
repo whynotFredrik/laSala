@@ -57,6 +57,19 @@ export default async function MarketingPage({
     data: { user },
   } = await supabase.auth.getUser()
 
+  // Resolve the role so the header CTA goes to the right landing for the
+  // signed-in user (admins → /admin, members → /home).
+  let role: "admin" | "member" | null = null
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle()
+    role = (profile?.role as "admin" | "member" | null) ?? "member"
+  }
+  const accountHref = role === "admin" ? "/admin" : "/home"
+
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur">
@@ -64,7 +77,7 @@ export default async function MarketingPage({
           <Logo size="md" />
           {user ? (
             <Link
-              href="/home"
+              href={accountHref}
               className={buttonVariants({ variant: "default", size: "sm" })}
             >
               Contul tău

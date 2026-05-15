@@ -65,3 +65,16 @@ export async function requireAdmin() {
   }
   return { user, profile }
 }
+
+/**
+ * Like requireUser but additionally bounces admins away. Admins don't have
+ * member-facing functionality (no bookings, no plan, no progress); when
+ * they hit a member route we send them to /admin where they belong.
+ */
+export async function requireMember() {
+  const { user, profile } = await requireUser()
+  if (profile.role === "admin") {
+    redirect("/admin")
+  }
+  return { user, profile }
+}

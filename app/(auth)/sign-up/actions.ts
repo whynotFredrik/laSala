@@ -40,6 +40,8 @@ export async function signUpAction(
     email: formData.get("email"),
     phone: formData.get("phone"),
     sex: formData.get("sex"),
+    age: formData.get("age"),
+    heightCm: formData.get("heightCm"),
     password: formData.get("password"),
     gdprConsent: formData.get("gdprConsent") === "on",
   })
@@ -49,7 +51,8 @@ export async function signUpAction(
     return { status: "error", message: first?.message ?? "invalid_input" }
   }
 
-  const { firstName, lastName, email, phone, sex, password } = parsed.data
+  const { firstName, lastName, email, phone, sex, age, heightCm, password } =
+    parsed.data
   const fullName = `${firstName} ${lastName}`.trim()
 
   const supabase = await createClient()
@@ -70,6 +73,8 @@ export async function signUpAction(
         full_name: fullName,
         first_name: firstName,
         sex,
+        age: String(age),
+        height_cm: String(heightCm),
       },
       emailRedirectTo: `${siteUrl()}/auth/callback?next=/home`,
     },
@@ -92,11 +97,15 @@ export async function signUpAction(
   const trainer = await assignTrainer(sex)
 
   // Stamp phone + GDPR (+ trainer if auto-assigned) onto the profile.
-  // The trigger handled id/email/full_name/first_name/sex.
+  // The trigger handled id/email/full_name/first_name/sex/age/height. We
+  // re-write age + height here as well so a deployment with the OLD
+  // trigger doesn't silently drop them — defensive belt-and-braces.
   const { error: updateError } = await service
     .from("profiles")
     .update({
       phone: normalisePhone(phone),
+      tdee_age: age,
+      tdee_height_cm: heightCm,
       gdpr_consented_at: new Date().toISOString(),
       gdpr_version: gdpr?.version ?? null,
       ...(trainer ? { trainer } : {}),

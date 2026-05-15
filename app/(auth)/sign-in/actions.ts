@@ -11,8 +11,13 @@ export type SignInState =
 
 /**
  * Email/password sign-in. Validates with Zod server-side, then defers to
- * Supabase Auth. Redirects to `?next=` if it points at an internal path,
- * otherwise to /home.
+ * Supabase Auth.
+ *
+ * Redirect target:
+ *   1. `?next=` if it points at an internal path (deep-linked from /book,
+ *      /reset-password, etc.)
+ *   2. `/admin` if the signed-in user is an admin
+ *   3. `/home` otherwise
  */
 export async function signInAction(
   _prev: SignInState,
@@ -28,14 +33,23 @@ export async function signInAction(
   }
 
   const supabase = await createClient()
-  const { error } = await supabase.auth.signInWithPassword(parsed.data)
+  const { data: signInData, error } =
+    await supabase.auth.signInWithPassword(parsed.data)
 
-  if (error) {
+  if (error || !signInData.user) {
     return { status: "error", message: "invalid_credentials" }
   }
 
   const next = formData.get("next")
-  const target =
-    typeof next === "string" && next.startsWith("/") ? next : "/home"
-  redirect(target)
+  if (typeof next === "string" && next.startsWith("/")) {
+    redirect(next)
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", signInData.user.id)
+    .maybeSingle()
+
+  redirect(profile?.role === "admin" ? "/admin" : "/home")
 }

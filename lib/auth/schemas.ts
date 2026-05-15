@@ -34,6 +34,8 @@ export const signUpSchema = z.object({
     .trim()
     .regex(phoneRegex, "phone_invalid"),
   sex: z.enum(["male", "female"]),
+  age: z.coerce.number().int().min(13).max(100),
+  heightCm: z.coerce.number().min(120).max(230),
   password: passwordCreate,
   gdprConsent: z
     .boolean()

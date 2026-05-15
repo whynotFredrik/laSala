@@ -15,9 +15,13 @@ const initialState: ProfileState = { status: "idle" }
 export function ProfileForm({
   defaultName,
   defaultPhone,
+  defaultAge,
+  defaultHeightCm,
 }: {
   defaultName: string
   defaultPhone: string
+  defaultAge: number | null
+  defaultHeightCm: number | null
 }) {
   const t = useTranslations("auth")
   const tProfile = useTranslations("profilePage")
@@ -49,6 +53,34 @@ export function ProfileForm({
           defaultValue={defaultPhone}
           required
         />
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="age">{t("age")}</Label>
+          <Input
+            id="age"
+            name="age"
+            type="number"
+            inputMode="numeric"
+            min={13}
+            max={100}
+            defaultValue={defaultAge ?? ""}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="heightCm">{t("heightCm")}</Label>
+          <Input
+            id="heightCm"
+            name="heightCm"
+            type="number"
+            inputMode="decimal"
+            step="0.1"
+            min={120}
+            max={230}
+            defaultValue={defaultHeightCm ?? ""}
+          />
+        </div>
       </div>
 
       {state.status === "error" ? (

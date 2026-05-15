@@ -36,6 +36,10 @@ export default async function ProfilePage() {
           <ProfileForm
             defaultName={profile.full_name ?? ""}
             defaultPhone={profile.phone ?? ""}
+            defaultAge={profile.tdee_age}
+            defaultHeightCm={
+              profile.tdee_height_cm ? Number(profile.tdee_height_cm) : null
+            }
           />
           {profile.trainer ? (
             <p className="rounded border bg-muted/40 p-2 text-sm">

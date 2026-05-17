@@ -42,8 +42,9 @@ export type GenerateSessionsResult =
   | { status: "error"; message: string }
 
 /**
- * Reads the schedule template and creates `sessions` rows for next week
- * (Mon..Sun). Idempotent — re-running just bumps `skipped` for already-existing
+ * Core generator. Reads the schedule template and creates `sessions` rows
+ * for the week containing `anchor` (Mon..Sun in studio local time).
+ * Idempotent — re-running just bumps `skipped` for already-existing
  * (date, time, trainer) tuples.
  *
  * After each session is created, every member with an active recurring
@@ -52,8 +53,9 @@ export type GenerateSessionsResult =
  * active plan, plan expires before session, sessions exhausted, etc.) are
  * counted into `recurringSkipped` so the admin can see the result.
  */
-export async function generateNextWeekSessionsAction(): Promise<GenerateSessionsResult> {
-  await requireAdmin()
+async function generateForWeekContaining(
+  anchor: Date,
+): Promise<GenerateSessionsResult> {
   const service = createServiceClient()
 
   const { data: template, error: tplErr } = await service
@@ -81,7 +83,7 @@ export async function generateNextWeekSessionsAction(): Promise<GenerateSessions
   }
 
   const slots = template as ScheduleSlot[]
-  const weekStartLocal = mondayOf(addDays(new Date(), 7))
+  const weekStartLocal = mondayOf(anchor)
 
   let created = 0
   let skipped = 0
@@ -146,5 +148,35 @@ export async function generateNextWeekSessionsAction(): Promise<GenerateSessions
   }
 
   revalidatePath("/admin/sessions")
+  revalidatePath("/book")
   return { status: "ok", created, skipped, recurringBooked, recurringSkipped }
+}
+
+/**
+ * Generate sessions for the week containing today (Mon..Sun in studio
+ * local time). Use this as a fallback when the Sunday auto-generation
+ * was missed and the studio needs to open bookings for the current week.
+ */
+export async function generateCurrentWeekSessionsAction(): Promise<GenerateSessionsResult> {
+  await requireAdmin()
+  return generateForWeekContaining(new Date())
+}
+
+/**
+ * Generate sessions for next week (Mon..Sun). This is what the admin
+ * normally runs every Sunday — and what the cron at /api/cron/generate-week
+ * runs automatically.
+ */
+export async function generateNextWeekSessionsAction(): Promise<GenerateSessionsResult> {
+  await requireAdmin()
+  return generateForWeekContaining(addDays(new Date(), 7))
+}
+
+/**
+ * Cron-friendly variant: same as `generateNextWeekSessionsAction` but
+ * without the `requireAdmin` gate. The route handler that calls this
+ * MUST verify the `CRON_SECRET` header first.
+ */
+export async function generateNextWeekSessionsCron(): Promise<GenerateSessionsResult> {
+  return generateForWeekContaining(addDays(new Date(), 7))
 }

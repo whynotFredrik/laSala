@@ -438,6 +438,7 @@
     "title": "Sesiuni",
     "subtitle": "Calendar pentru următoarele {days} de zile, cu prezența pe sesiune.",
     "generateNextWeek": "Generează săptămâna viitoare",
+    "generateCurrentWeek": "Generează săptămâna curentă",
     "generated": "{created} sesiuni create, {skipped} sărite. Recurente: {recurringBooked} rezervate, {recurringSkipped} sărite.",
     "generateFailed": "Generarea a eșuat.",
     "sessionsCount": "sesiuni",

@@ -6,32 +6,59 @@ import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 
-import { generateNextWeekSessionsAction } from "./actions"
+import {
+  generateCurrentWeekSessionsAction,
+  generateNextWeekSessionsAction,
+  type GenerateSessionsResult,
+} from "./actions"
 
+/**
+ * Two buttons:
+ *   - "Generează săptămâna viitoare" — normal weekly action.
+ *   - "Generează săptămâna curentă" — fallback when the Sunday run was
+ *     missed and members can't see this week's sessions.
+ * Both call the same idempotent generator under the hood.
+ */
 export function GenerateNextWeekButton() {
   const t = useTranslations("adminSessions")
   const [pending, start] = useTransition()
-  return (
-    <Button
-      type="button"
-      disabled={pending}
-      onClick={() =>
-        start(async () => {
-          const res = await generateNextWeekSessionsAction()
-          if (res.status === "error") toast.error(t("generateFailed"))
-          else
-            toast.success(
-              t("generated", {
-                created: res.created,
-                skipped: res.skipped,
-                recurringBooked: res.recurringBooked,
-                recurringSkipped: res.recurringSkipped,
-              }),
-            )
-        })
+
+  const handle = (
+    fn: () => Promise<GenerateSessionsResult>,
+  ) =>
+    start(async () => {
+      const res = await fn()
+      if (res.status === "error") {
+        toast.error(t("generateFailed"))
+      } else {
+        toast.success(
+          t("generated", {
+            created: res.created,
+            skipped: res.skipped,
+            recurringBooked: res.recurringBooked,
+            recurringSkipped: res.recurringSkipped,
+          }),
+        )
       }
-    >
-      {t("generateNextWeek")}
-    </Button>
+    })
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      <Button
+        type="button"
+        variant="outline"
+        disabled={pending}
+        onClick={() => handle(generateCurrentWeekSessionsAction)}
+      >
+        {t("generateCurrentWeek")}
+      </Button>
+      <Button
+        type="button"
+        disabled={pending}
+        onClick={() => handle(generateNextWeekSessionsAction)}
+      >
+        {t("generateNextWeek")}
+      </Button>
+    </div>
   )
 }

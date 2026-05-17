@@ -102,13 +102,22 @@ async function generateForWeekContaining(
 
     let sessionId: string | null = null
 
-    const { data: existing } = await service
+    // Look up any existing session at this (date, time, trainer). We use
+    // .is(null) for null trainers because Postgres treats NULL as distinct,
+    // so .eq("trainer", "") would never match. We also fetch with a list
+    // (not .maybeSingle) so pre-existing duplicates don't fall through to
+    // the insert branch and get even more duplicates piled on.
+    let existsQuery = service
       .from("sessions")
       .select("id")
       .eq("session_date", sessionDate)
       .eq("start_at", startAt.toISOString())
-      .eq("trainer", slot.trainer ?? "")
-      .maybeSingle()
+      .limit(1)
+    existsQuery = slot.trainer
+      ? existsQuery.eq("trainer", slot.trainer)
+      : existsQuery.is("trainer", null)
+    const { data: existingRows } = await existsQuery
+    const existing = existingRows?.[0] ?? null
 
     if (existing) {
       sessionId = existing.id

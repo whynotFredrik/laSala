@@ -6,21 +6,18 @@
 -- app/admin/sessions/actions.ts, this prevents new duplicates from forming.
 --
 -- Strategy
---   - FUTURE sessions: keep the canonical row in each group (most bookings,
---     then oldest), delete the rest, but ONLY if they have zero bookings.
---     Future sessions are actionable for members, so we never silently move
---     or drop their booked sessions.
---   - PAST sessions: keep the canonical row, repoint bookings on duplicates
---     to the canonical, and delete the duplicates. Past sessions are
---     historical record only; nobody is going to show up to them. If a
---     user happens to have an 'booked' booking on both the canonical and
---     a duplicate (would violate the bookings unique partial index when
---     repointed), we drop the duplicate booking entirely rather than move
---     it.
+--   - FUTURE sessions: keep the canonical row per group (most bookings, then
+--     oldest), delete the rest, but ONLY if they have zero bookings.
+--     Future sessions are actionable for members; never silently drop a
+--     booked one.
+--   - PAST sessions: keep the canonical, repoint bookings on duplicates to
+--     the canonical, drop any bookings that can't be repointed without
+--     violating the bookings unique partial index, then delete the loser
+--     sessions. Past sessions are historical record only.
 --
--- We do NOT add a database-level unique index here. The application-level
--- check is enough, and any leftover historical duplicates with bookings
--- shouldn't block the migration.
+-- Implementation note: avoids temp tables because the Supabase SQL editor
+-- doesn't reliably keep them alive across statements. Everything is done
+-- via inline CTEs.
 
 begin;
 
@@ -28,7 +25,6 @@ begin;
 with future_dups as (
   select
     id,
-    booked_count,
     row_number() over (
       partition by session_date, start_at, trainer
       order by booked_count desc, created_at asc
@@ -44,62 +40,88 @@ where s.id = f.id
 
 -- ============ PAST DUPLICATES (aggressive cleanup) ============
 
--- Pick a winner per past duplicate group.
-create temp table past_winners on commit drop as
-select
-  session_date,
-  start_at,
-  trainer,
-  (array_agg(id order by booked_count desc, created_at asc))[1] as winner_id
-from public.sessions
-where session_date < current_date
-group by session_date, start_at, trainer
-having count(*) > 1;
-
--- The loser sessions = every duplicate that isn't the winner of its group.
-create temp table past_losers on commit drop as
-select s.id as loser_id, w.winner_id
-from public.sessions s
-join past_winners w
-  on s.session_date = w.session_date
- and s.start_at = w.start_at
- and s.trainer is not distinct from w.trainer
-where s.id <> w.winner_id;
-
--- Repoint bookings from losers to winners where it won't violate the
--- bookings unique partial index (user_id, session_date) where status='booked'.
+-- Step 1: repoint bookings from loser sessions to the winner of each group,
+-- but only where doing so wouldn't violate the bookings (user_id, session_date)
+-- where status='booked' unique partial index.
+with ranked as (
+  select
+    id,
+    session_date,
+    start_at,
+    trainer,
+    row_number() over (
+      partition by session_date, start_at, trainer
+      order by booked_count desc, created_at asc
+    ) as rn
+  from public.sessions
+  where session_date < current_date
+),
+winners as (
+  select id as winner_id, session_date, start_at, trainer
+  from ranked where rn = 1
+),
+losers as (
+  select
+    r.id as loser_id,
+    w.winner_id
+  from ranked r
+  join winners w
+    on r.session_date = w.session_date
+   and r.start_at = w.start_at
+   and r.trainer is not distinct from w.trainer
+  where r.rn > 1
+)
 update public.bookings b
 set session_id = l.winner_id
-from past_losers l
+from losers l
 where b.session_id = l.loser_id
-  and not exists (
-    select 1
-    from public.bookings b2
-    where b2.user_id = b.user_id
-      and b2.session_id = l.winner_id
-      and (b.status <> 'booked' or b2.status <> 'booked')  -- conflict only if both 'booked'
-      and b.id <> b2.id
-  )
-  -- explicit safeguard: also skip if the user already has a 'booked' on the winner
   and not (
+    -- Skip move if user already has a 'booked' on the winner and this one
+    -- is also 'booked' — moving would violate the unique partial index.
     b.status = 'booked'
     and exists (
       select 1
-      from public.bookings b3
-      where b3.user_id = b.user_id
-        and b3.session_id = l.winner_id
-        and b3.status = 'booked'
+      from public.bookings b2
+      where b2.user_id = b.user_id
+        and b2.session_id = l.winner_id
+        and b2.status = 'booked'
     )
   );
 
--- Anything still pointing at a loser is an unmovable duplicate — delete it.
+-- Step 2: anything still on a loser session is an unmovable duplicate —
+-- delete it. Recompute the loser set inline because the previous CTE is gone.
+with ranked as (
+  select
+    id,
+    session_date,
+    start_at,
+    trainer,
+    row_number() over (
+      partition by session_date, start_at, trainer
+      order by booked_count desc, created_at asc
+    ) as rn
+  from public.sessions
+  where session_date < current_date
+)
 delete from public.bookings b
-using past_losers l
-where b.session_id = l.loser_id;
+using ranked r
+where b.session_id = r.id
+  and r.rn > 1;
 
--- Now the loser sessions have no bookings — drop them.
+-- Step 3: loser sessions now have no bookings — drop them.
+with ranked as (
+  select
+    id,
+    row_number() over (
+      partition by session_date, start_at, trainer
+      order by booked_count desc, created_at asc
+    ) as rn
+  from public.sessions
+  where session_date < current_date
+)
 delete from public.sessions s
-using past_losers l
-where s.id = l.loser_id;
+using ranked r
+where s.id = r.id
+  and r.rn > 1;
 
 commit;

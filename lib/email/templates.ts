@@ -144,9 +144,8 @@ export const TEMPLATES: {
     body: `
       <p>Salut, ${escape(p.name)}!</p>
       <p>Ai solicitat abonamentul <strong>${escape(p.planName)}</strong> la prețul de <strong>${escape(p.price)} RON</strong>.</p>
-      <p>Pentru activare, achită contravaloarea prin una dintre metodele:</p>
+      <p>Plata se face fizic la studio, prin una dintre metodele:</p>
       <ul>
-        <li><strong>Transfer bancar</strong> — detaliile sunt în aplicație, în pagina Planuri.</li>
         <li><strong>POS la studio</strong> — card sau Apple/Google Pay la recepție.</li>
         <li><strong>Numerar la studio</strong>.</li>
       </ul>

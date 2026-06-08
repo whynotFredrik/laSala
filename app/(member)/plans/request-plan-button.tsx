@@ -25,7 +25,7 @@ import { Label } from "@/components/ui/label"
 
 import { requestPlanAction } from "./actions"
 
-type PaymentMethod = "bank_transfer" | "pos" | "cash"
+type PaymentMethod = "pos" | "cash"
 
 export function RequestPlanButton({
   tierId,
@@ -96,9 +96,6 @@ export function RequestPlanButton({
                   <SelectValue placeholder={t("selectPaymentMethod")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="bank_transfer">
-                    {t("bankTransfer")}
-                  </SelectItem>
                   <SelectItem value="pos">{t("posAtStudio")}</SelectItem>
                   <SelectItem value="cash">{t("cashAtStudio")}</SelectItem>
                 </SelectContent>

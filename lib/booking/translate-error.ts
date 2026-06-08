@@ -18,6 +18,7 @@ const MAP: Array<{ test: RegExp; key: string }> = [
   { test: /no active plan/i, key: "no_active_plan" },
   { test: /plan expires before/i, key: "plan_expires_before_session" },
   { test: /no sessions remaining/i, key: "plan_exhausted" },
+  { test: /grace bookings exhausted/i, key: "grace_exhausted" },
   { test: /already booked for this date/i, key: "already_booked_today" },
   { test: /already booked for the new date/i, key: "already_booked_today" },
   { test: /booking not found/i, key: "booking_not_found" },

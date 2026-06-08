@@ -10,7 +10,11 @@ import { createServiceClient } from "@/lib/supabase/service"
 
 const requestSchema = z.object({
   tierId: z.string().uuid(),
-  paymentMethod: z.enum(["bank_transfer", "pos", "cash"]).optional(),
+  // Bank transfer was removed from the available payment methods — studio
+  // now accepts only in-person card (POS) or cash. The DB enum still has
+  // `bank_transfer` for historical records, but we don't accept it on
+  // new requests.
+  paymentMethod: z.enum(["pos", "cash"]).optional(),
   notes: z.string().max(500).optional(),
 })
 

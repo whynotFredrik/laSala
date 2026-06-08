@@ -12,7 +12,10 @@ import { createServiceClient } from "@/lib/supabase/service"
 
 const approveSchema = z.object({
   requestId: z.string().uuid(),
-  paymentMethod: z.enum(["bank_transfer", "pos", "cash"]),
+  // Bank transfer is no longer offered — studio accepts only in-person
+  // POS or cash. Historical records in the DB may still hold
+  // 'bank_transfer'; the schema rejects it for new approvals.
+  paymentMethod: z.enum(["pos", "cash"]),
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
 })
 
@@ -62,7 +65,7 @@ async function loadRequestContext(requestId: string) {
  */
 export async function approvePlanRequestAction(input: {
   requestId: string
-  paymentMethod: "bank_transfer" | "pos" | "cash"
+  paymentMethod: "pos" | "cash"
   startDate: string
 }): Promise<PlanRequestAdminResult> {
   const parsed = approveSchema.safeParse(input)

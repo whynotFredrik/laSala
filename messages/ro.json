@@ -67,6 +67,8 @@
     "noActivePlan": "Niciun plan activ",
     "planExpired": "Plan expirat",
     "planExpires": "Expiră",
+    "graceTitle": "Sesiuni de grație",
+    "graceBody": "Mai poți rezerva {remaining} sesiuni înainte de reînnoirea abonamentului. Solicită un plan nou cât mai curând.",
     "upcomingBookings": "Rezervări viitoare",
     "noUpcomingBookings": "Nu ai rezervări viitoare",
     "bookNow": "Rezervă acum",
@@ -105,6 +107,7 @@
     "no_active_plan": "Nu ai un abonament activ. Solicită un plan din pagina Planuri.",
     "plan_expires_before_session": "Abonamentul tău expiră înainte de această sesiune.",
     "plan_exhausted": "Nu mai ai sesiuni disponibile pe abonament.",
+    "grace_exhausted": "Ai folosit cele 2 sesiuni de grație. Solicită un plan nou pentru a continua.",
     "already_booked_today": "Ai deja o rezervare pentru această zi.",
     "booking_not_found": "Rezervarea nu a fost găsită.",
     "booking_not_active": "Rezervarea nu mai este activă.",
@@ -180,11 +183,9 @@
     "submitRequest": "Trimite cererea",
     "requestSubmittedTitle": "Cererea a fost trimisă! Te contactăm în scurt timp.",
     "payInfoTitle": "Plată",
-    "payInfoBody": "Plătești după ce trimiți cererea. Confirmăm activarea când primim plata.",
-    "beneficiary": "Beneficiar",
-    "bank": "Bancă",
-    "reference": "Detalii plată",
-    "inPersonTitle": "La studio"
+    "payInfoBody": "Plata se face fizic la studio, cu cardul (POS) sau cash. Confirmăm activarea după primirea plății.",
+    "inPersonTitle": "La studio",
+    "inPersonBody": "Vino la recepție în programul studio-ului — alegi metoda care îți convine."
   },
   "plansErrors": {
     "invalid_input": "Date invalide.",

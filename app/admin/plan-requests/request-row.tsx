@@ -21,7 +21,7 @@ import {
   rejectPlanRequestAction,
 } from "./actions"
 
-type PaymentMethod = "bank_transfer" | "pos" | "cash"
+type PaymentMethod = "pos" | "cash"
 
 export function RequestRow({
   request,
@@ -37,8 +37,14 @@ export function RequestRow({
 }) {
   const t = useTranslations("adminPlanRequests")
   const [pending, start] = useTransition()
+  // Default to the requester's preferred method when it's still a valid
+  // option. Bank-transfer requests from before we removed that channel get
+  // bumped to "pos" so the admin can still approve them.
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(
-    (request.preferred_payment_method as PaymentMethod) ?? "cash",
+    request.preferred_payment_method === "pos" ||
+      request.preferred_payment_method === "cash"
+      ? (request.preferred_payment_method as PaymentMethod)
+      : "pos",
   )
   const [startDate, setStartDate] = useState(
     new Date().toISOString().slice(0, 10),
@@ -108,9 +114,6 @@ export function RequestRow({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="bank_transfer">
-              {t("bankTransfer")}
-            </SelectItem>
             <SelectItem value="pos">{t("pos")}</SelectItem>
             <SelectItem value="cash">{t("cash")}</SelectItem>
           </SelectContent>

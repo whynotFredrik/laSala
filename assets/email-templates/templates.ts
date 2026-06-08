@@ -61,9 +61,8 @@ export const emailTemplates = {
     body: `
       <p>Salut, {{name}}!</p>
       <p>Ai solicitat abonamentul <strong>{{planName}}</strong> la prețul de <strong>{{price}} RON</strong>.</p>
-      <p>Pentru activare, achită contravaloarea prin una dintre următoarele metode:</p>
+      <p>Plata se face fizic la studio, prin una dintre metodele:</p>
       <ul>
-        <li><strong>Transfer bancar</strong>: detaliile sunt în aplicație, în pagina de plan.</li>
         <li><strong>POS la studio</strong>: card sau Apple/Google Pay la recepție.</li>
         <li><strong>Numerar la studio</strong>.</li>
       </ul>

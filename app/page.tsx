@@ -156,18 +156,18 @@ function Hero() {
         <div className="max-w-2xl space-y-6">
           <p className="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs font-medium uppercase tracking-wider text-primary">
             <Sparkles className="size-3.5" />
-            Calisthenics · Oradea
+            Calisthenics & Functional Training · Oradea
           </p>
           <h1 className="text-4xl font-bold leading-tight tracking-tight sm:text-6xl">
-            Forță reală cu{" "}
-            <span className="text-primary">propria greutate</span>
-            <br />
-            în grupuri mici.
+            Forță reală prin{" "}
+            <span className="text-primary">mișcare inteligentă</span>
+            , în grupuri mici.
           </h1>
           <p className="max-w-xl text-base text-background/80 sm:text-lg">
-            Antrenamente de calisthenics în grup, sub îndrumarea unui antrenor
-            dedicat. Fără echipamente complicate — doar bara, paralelele și
-            corpul tău.
+            Antrenamente de calisthenics și functional training în grup, sub
+            îndrumarea unui antrenor dedicat. Fără aparate complicate —
+            construim forță, mobilitate și rezistență folosind doar greutatea
+            corpului și accesorii esențiale.
           </p>
           <div className="flex flex-wrap gap-3 pt-2">
             <Link

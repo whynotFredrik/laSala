@@ -15,7 +15,7 @@
     },
     {
       "path": "/api/cron/generate-week",
-      "schedule": "0 20 * * 6"
+      "schedule": "0 6 * * 0"
     }
   ]
 }

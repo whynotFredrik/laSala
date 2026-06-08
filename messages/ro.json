@@ -443,6 +443,7 @@
     "generateFailed": "Generarea a eșuat.",
     "sessionsCount": "sesiuni",
     "noSessions": "Nicio sesiune.",
+    "noTrainer": "Fără antrenor",
     "booked": "rezervat"
   },
   "adminPlanTiers": {

@@ -17,6 +17,20 @@ import { GenerateNextWeekButton } from "./generate-button"
 
 const VIEW_DAYS = 14
 
+/**
+ * Per-trainer chip colors so the admin can scan a busy day and tell at a
+ * glance whose slot is whose. Keep these in sync with any future trainer
+ * additions (and with `trainer-select.tsx` if we ever color-code there).
+ */
+const TRAINER_BADGE: Record<string, string> = {
+  Eugen:
+    "bg-blue-100 text-blue-900 dark:bg-blue-900/30 dark:text-blue-200",
+  Marina:
+    "bg-fuchsia-100 text-fuchsia-900 dark:bg-fuchsia-900/30 dark:text-fuchsia-200",
+  Ana:
+    "bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-200",
+}
+
 export default async function AdminSessionsPage() {
   const supabase = await createClient()
   const t = await getTranslations("adminSessions")
@@ -30,11 +44,12 @@ export default async function AdminSessionsPage() {
   const { data: sessions } = await supabase
     .from("sessions")
     .select(
-      "id, session_date, start_at, capacity, booked_count, classes(name_ro), bookings(id, status, profiles(full_name, email))",
+      "id, session_date, start_at, capacity, booked_count, trainer, classes(name_ro), bookings(id, status, profiles(full_name, email))",
     )
     .gte("session_date", start)
     .lte("session_date", end)
     .order("start_at", { ascending: true })
+    .order("trainer", { ascending: true })
 
   // Group by session_date.
   const days = Array.from({ length: VIEW_DAYS }, (_, i) =>
@@ -86,17 +101,32 @@ export default async function AdminSessionsPage() {
                     return (
                       <li key={s.id} className="rounded border p-3">
                         <div className="flex items-center justify-between gap-3">
-                          <div>
+                          <div className="flex flex-wrap items-center gap-2">
                             <p className="font-medium">
                               {formatStudio(s.start_at, "HH:mm")}
-                              {s.classes?.name_ro
-                                ? ` · ${s.classes.name_ro}`
-                                : ""}
                             </p>
-                            <p className="text-xs text-muted-foreground">
-                              {s.booked_count}/{s.capacity}{" "}
-                              {t("booked")}
-                            </p>
+                            {s.trainer ? (
+                              <span
+                                className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                                  TRAINER_BADGE[s.trainer] ??
+                                  "bg-muted text-muted-foreground"
+                                }`}
+                              >
+                                {s.trainer}
+                              </span>
+                            ) : (
+                              <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                                {t("noTrainer")}
+                              </span>
+                            )}
+                            {s.classes?.name_ro ? (
+                              <span className="text-sm text-muted-foreground">
+                                · {s.classes.name_ro}
+                              </span>
+                            ) : null}
+                            <span className="text-xs text-muted-foreground">
+                              · {s.booked_count}/{s.capacity} {t("booked")}
+                            </span>
                           </div>
                         </div>
                         {roster.length > 0 ? (

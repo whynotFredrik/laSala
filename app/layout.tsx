@@ -33,6 +33,19 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: "Lasala",
   },
+  // iOS Safari ignores the PWA manifest icons when "Add to Home Screen" is
+  // used — it only honors <link rel="apple-touch-icon">. Without these
+  // explicit entries the home-screen tile shows a blank/grey icon.
+  // The Next.js Metadata API emits the right <link> tags from these.
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
+    shortcut: ["/icon-192.png"],
+  },
   openGraph: {
     type: "website",
     siteName: "Lasala Fitness Studio",

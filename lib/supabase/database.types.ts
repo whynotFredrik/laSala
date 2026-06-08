@@ -19,6 +19,7 @@ export type Database = {
           booked_at: string
           cancelled_at: string | null
           id: string
+          is_grace: boolean
           iso_week: string
           notes: string | null
           reschedule_count_iso_week: number
@@ -31,6 +32,7 @@ export type Database = {
           booked_at?: string
           cancelled_at?: string | null
           id?: string
+          is_grace?: boolean
           iso_week: string
           notes?: string | null
           reschedule_count_iso_week?: number
@@ -43,6 +45,7 @@ export type Database = {
           booked_at?: string
           cancelled_at?: string | null
           id?: string
+          is_grace?: boolean
           iso_week?: string
           notes?: string | null
           reschedule_count_iso_week?: number
@@ -538,6 +541,7 @@ export type Database = {
         Row: {
           created_at: string
           end_date: string
+          grace_used: number
           id: string
           is_active: boolean
           payment_method: Database["public"]["Enums"]["payment_method"] | null
@@ -550,6 +554,7 @@ export type Database = {
         Insert: {
           created_at?: string
           end_date: string
+          grace_used?: number
           id?: string
           is_active?: boolean
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
@@ -562,6 +567,7 @@ export type Database = {
         Update: {
           created_at?: string
           end_date?: string
+          grace_used?: number
           id?: string
           is_active?: boolean
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
@@ -881,6 +887,7 @@ export type Database = {
         Returns: {
           created_at: string
           end_date: string
+          grace_used: number
           id: string
           is_active: boolean
           payment_method: Database["public"]["Enums"]["payment_method"] | null
@@ -903,6 +910,7 @@ export type Database = {
           booked_at: string
           cancelled_at: string | null
           id: string
+          is_grace: boolean
           iso_week: string
           notes: string | null
           reschedule_count_iso_week: number
@@ -924,6 +932,7 @@ export type Database = {
           booked_at: string
           cancelled_at: string | null
           id: string
+          is_grace: boolean
           iso_week: string
           notes: string | null
           reschedule_count_iso_week: number
@@ -945,6 +954,7 @@ export type Database = {
           booked_at: string
           cancelled_at: string | null
           id: string
+          is_grace: boolean
           iso_week: string
           notes: string | null
           reschedule_count_iso_week: number
@@ -985,6 +995,7 @@ export type Database = {
           booked_at: string
           cancelled_at: string | null
           id: string
+          is_grace: boolean
           iso_week: string
           notes: string | null
           reschedule_count_iso_week: number

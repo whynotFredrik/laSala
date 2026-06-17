@@ -96,7 +96,7 @@
     "locksUntilSunday": "Disponibil de duminică",
     "noSessionsForDay": "Nicio sesiune pentru această zi",
     "rulesTitle": "Cum funcționează rezervările",
-    "rulesBody": "Sesiunile pentru săptămâna următoare se deblochează duminica la 00:00. Anularea este posibilă cu cel puțin 3 ore înainte de sesiune. Ai dreptul la maxim 2 modificări pe săptămână (anulări + reprogramări la un loc)."
+    "rulesBody": "Sesiunile pentru săptămâna următoare se deblochează duminica dimineața. Anularea este posibilă cu cel puțin 3 ore înainte de sesiune. Ai dreptul la maxim 2 modificări pe săptămână (anulări + reprogramări la un loc)."
   },
   "bookingErrors": {
     "invalid_input": "Date invalide.",
@@ -332,6 +332,17 @@
     "trainerChanged": "Antrenor schimbat",
     "manageMealPlan": "Plan alimentar",
     "manageRecurring": "Programări recurente",
+    "upcomingBookingsTitle": "Programări viitoare",
+    "upcomingBookingsDesc": "Mută sau anulează rezervările membrului. Sări peste fereastra de 3h și plafonul săptămânal — autoritatea ta de admin se aplică.",
+    "noUpcomingBookings": "Niciuna în următoarele 14 zile.",
+    "pickTargetSession": "Alege sesiunea țintă",
+    "noCompatibleSessions": "Nicio sesiune compatibilă disponibilă.",
+    "sameSessionPicked": "Sesiunea aleasă e cea curentă.",
+    "spotsLeftShort": "locuri",
+    "move": "Mută",
+    "bookingMoved": "Rezervare mutată",
+    "bookingCancelled": "Rezervare anulată",
+    "confirmCancel": "Sigur vrei să anulezi această rezervare?",
     "dangerZone": "Zonă periculoasă",
     "dangerZoneDesc": "Acțiuni ireversibile. Toate datele membrului (rezervări, abonamente, poze, măsurători) vor fi șterse definitiv.",
     "deleteUser": "Șterge contul",

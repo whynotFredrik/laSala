@@ -20,6 +20,7 @@ import { AdjustPlanForm } from "./adjust-plan-form"
 import { DeleteUserForm } from "./delete-user-form"
 import { DietarySummary } from "./dietary-summary"
 import { TrainerSelect } from "./trainer-select"
+import { UpcomingBookings } from "./upcoming-bookings"
 
 const SIGNED_URL_TTL_SEC = 60 * 60 // 1 hour
 
@@ -88,6 +89,49 @@ export default async function AdminUserDetailPage({
   ])
 
   if (!profile) notFound()
+
+  // Upcoming bookings for the member + a candidate pool of sessions the
+  // admin can move them into. We pull next 14 days; the client component
+  // filters down to trainer-compatible, capacity-available options.
+  const nowIso = new Date().toISOString()
+  const fortnightIso = new Date(
+    Date.now() + 14 * 24 * 60 * 60 * 1000,
+  ).toISOString()
+  const [{ data: upcomingRaw }, { data: candidatesRaw }] = await Promise.all([
+    supabase
+      .from("bookings")
+      .select(
+        "id, session_id, sessions!inner(start_at, trainer, classes(name_ro))",
+      )
+      .eq("user_id", id)
+      .eq("status", "booked")
+      .gte("sessions.start_at", nowIso)
+      .order("start_at", { referencedTable: "sessions", ascending: true }),
+    supabase
+      .from("sessions")
+      .select("id, start_at, trainer, capacity, booked_count, classes(name_ro)")
+      .gte("start_at", nowIso)
+      .lte("start_at", fortnightIso)
+      .order("start_at", { ascending: true }),
+  ])
+
+  const upcomingBookings = (upcomingRaw ?? [])
+    .filter((b) => b.sessions)
+    .map((b) => ({
+      id: b.id,
+      sessionId: b.session_id,
+      startAt: b.sessions!.start_at,
+      className: b.sessions!.classes?.name_ro ?? null,
+      trainer: b.sessions!.trainer ?? null,
+    }))
+
+  const candidateSessions = (candidatesRaw ?? []).map((s) => ({
+    id: s.id,
+    startAt: s.start_at,
+    className: s.classes?.name_ro ?? null,
+    trainer: s.trainer ?? null,
+    spotsLeft: Math.max(s.capacity - s.booked_count, 0),
+  }))
 
   // Generate signed URLs for all photos in one pass.
   const photos = await Promise.all(
@@ -198,6 +242,20 @@ export default async function AdminUserDetailPage({
           </CardContent>
         </Card>
       ) : null}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("upcomingBookingsTitle")}</CardTitle>
+          <CardDescription>{t("upcomingBookingsDesc")}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <UpcomingBookings
+            userId={profile.id}
+            bookings={upcomingBookings}
+            candidates={candidateSessions}
+          />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

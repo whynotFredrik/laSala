@@ -5,6 +5,8 @@ import { redirect } from "next/navigation"
 import { z } from "zod"
 
 import { requireAdmin } from "@/lib/auth/get-user"
+import { translateBookingError } from "@/lib/booking/translate-error"
+import { createClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/service"
 
 export type UserAdminState =
@@ -108,6 +110,79 @@ export async function setUserTrainerAction(input: {
     return { status: "error" as const, message: "save_failed" }
   }
   revalidatePath(`/admin/users/${input.userId}`)
+  return { status: "ok" as const }
+}
+
+const moveBookingSchema = z.object({
+  userId: z.string().uuid(),
+  bookingId: z.string().uuid(),
+  newSessionId: z.string().uuid(),
+})
+
+/**
+ * Reschedule a member's booking to a different session. Wraps the
+ * `reschedule_booking` Postgres function — which, after migration 0016,
+ * lets admins bypass ownership, the 3-hour pre-session window, and the
+ * 2-per-week cap. Capacity and same-day-double-booking are still enforced
+ * (an admin shouldn't be able to jam a member into a full slot).
+ */
+export async function adminMoveBookingAction(input: {
+  userId: string
+  bookingId: string
+  newSessionId: string
+}) {
+  const parsed = moveBookingSchema.safeParse(input)
+  if (!parsed.success) {
+    return { status: "error" as const, message: "invalid_input" }
+  }
+
+  await requireAdmin()
+  // Use the regular client so auth.uid() inside the RPC = admin, and
+  // is_admin() returns true.
+  const supabase = await createClient()
+  const { error } = await supabase.rpc("reschedule_booking", {
+    p_booking_id: parsed.data.bookingId,
+    p_new_session_id: parsed.data.newSessionId,
+  })
+  if (error) {
+    return { status: "error" as const, message: translateBookingError(error.message) }
+  }
+
+  revalidatePath(`/admin/users/${parsed.data.userId}`)
+  revalidatePath("/admin/sessions")
+  return { status: "ok" as const }
+}
+
+const cancelBookingSchema = z.object({
+  userId: z.string().uuid(),
+  bookingId: z.string().uuid(),
+})
+
+/**
+ * Cancel a member's booking on their behalf. cancel_booking already has
+ * admin bypass for ownership + 3-hour window — this wraps it so we can
+ * revalidate the right admin paths.
+ */
+export async function adminCancelBookingAction(input: {
+  userId: string
+  bookingId: string
+}) {
+  const parsed = cancelBookingSchema.safeParse(input)
+  if (!parsed.success) {
+    return { status: "error" as const, message: "invalid_input" }
+  }
+
+  await requireAdmin()
+  const supabase = await createClient()
+  const { error } = await supabase.rpc("cancel_booking", {
+    p_booking_id: parsed.data.bookingId,
+  })
+  if (error) {
+    return { status: "error" as const, message: translateBookingError(error.message) }
+  }
+
+  revalidatePath(`/admin/users/${parsed.data.userId}`)
+  revalidatePath("/admin/sessions")
   return { status: "ok" as const }
 }
 

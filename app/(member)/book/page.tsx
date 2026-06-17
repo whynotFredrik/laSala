@@ -31,10 +31,25 @@ export default async function BookPage() {
   const firstDay = days[0]!
   const lastDay = days[days.length - 1]!
 
-  // Pull every session in the 7-day window. We filter to either the
-  // member's assigned trainer OR sessions with no trainer assigned (legacy
-  // open sessions) so a member only sees their trainer's lineup.
+  // Pull every session in the 7-day window. Filter rules:
+  //   - If the member has a specific trainer assigned, show only that
+  //     trainer's sessions (men → Eugen, or women whom an admin has
+  //     pinned to Marina/Ana).
+  //   - If no specific trainer is assigned (typical for newly-signed-up
+  //     women before the admin picks Marina vs. Ana), fall back to
+  //     filtering by trainer-gender: women see Marina + Ana, men see
+  //     Eugen. This prevents women from seeing the men-only lineup
+  //     (and vice versa) just because the admin hasn't gotten to them yet.
   const trainer = profile.trainer
+  const visibleTrainers =
+    trainer != null
+      ? [trainer]
+      : profile.sex === "female"
+        ? ["Marina", "Ana"]
+        : profile.sex === "male"
+          ? ["Eugen"]
+          : null
+
   let sessionsQuery = supabase
     .from("sessions")
     .select("*, classes(name_ro, color)")
@@ -42,8 +57,8 @@ export default async function BookPage() {
     .lte("session_date", lastDay)
     .order("start_at", { ascending: true })
 
-  if (trainer) {
-    sessionsQuery = sessionsQuery.or(`trainer.eq.${trainer},trainer.is.null`)
+  if (visibleTrainers) {
+    sessionsQuery = sessionsQuery.in("trainer", visibleTrainers)
   }
 
   const { data: sessionsRaw } = await sessionsQuery

@@ -17,11 +17,13 @@ export function AdjustPlanForm({
   sessionsTotal,
   sessionsUsed,
   endDate,
+  streakMonth,
 }: {
   planId: string
   sessionsTotal: number
   sessionsUsed: number
   endDate: string
+  streakMonth: number
 }) {
   const t = useTranslations("adminUsers")
   const [state, action, pending] = useActionState(adjustPlanAction, initialState)
@@ -33,7 +35,7 @@ export function AdjustPlanForm({
   }, [state, t])
 
   return (
-    <form action={action} className="grid gap-3 sm:grid-cols-3">
+    <form action={action} className="grid gap-3 sm:grid-cols-4">
       <input type="hidden" name="planId" value={planId} />
       <div className="space-y-2">
         <Label htmlFor="sessionsTotal">{t("sessionsTotal")}</Label>
@@ -67,7 +69,19 @@ export function AdjustPlanForm({
           required
         />
       </div>
-      <div className="sm:col-span-3">
+      <div className="space-y-2">
+        <Label htmlFor="streakMonth">{t("grantStreakMonth")}</Label>
+        <Input
+          id="streakMonth"
+          name="streakMonth"
+          type="number"
+          inputMode="numeric"
+          min={1}
+          defaultValue={streakMonth}
+          required
+        />
+      </div>
+      <div className="sm:col-span-4">
         <Button type="submit" disabled={pending}>
           {t("save")}
         </Button>

@@ -11,6 +11,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "vitest run",
     "db:types": "supabase gen types typescript --project-id bnlcmgwxzfjwqhwefzqt > lib/supabase/database.types.ts"
   },
   "dependencies": {

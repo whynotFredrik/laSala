@@ -32,12 +32,6 @@ export async function PlanCard({ plan }: { plan: ActivePlan }) {
 
   const remaining = Math.max(plan.sessions_total - plan.sessions_used, 0)
   const expired = new Date(plan.end_date) < new Date()
-  const exhausted = remaining === 0
-  // When the regular plan can't cover the next session (exhausted OR expired),
-  // grace bookings kick in. Show how many of the 2 grace credits are left.
-  const onGrace = expired || exhausted
-  const graceUsed = plan.grace_used ?? 0
-  const graceRemaining = Math.max(2 - graceUsed, 0)
 
   return (
     <Card>
@@ -60,11 +54,10 @@ export async function PlanCard({ plan }: { plan: ActivePlan }) {
             {format(new Date(plan.end_date), "d MMM yyyy", { locale: ro })}
           </span>
         </p>
-        {onGrace ? (
-          <div className="mt-3 rounded border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
-            <p className="font-medium">{t("graceTitle")}</p>
-            <p>{t("graceBody", { remaining: graceRemaining })}</p>
-          </div>
+        {plan.streak_month > 1 ? (
+          <p className="text-muted-foreground">
+            {t("streakBadge", { month: plan.streak_month })}
+          </p>
         ) : null}
       </CardContent>
     </Card>

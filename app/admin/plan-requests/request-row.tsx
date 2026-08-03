@@ -33,6 +33,13 @@ export function RequestRow({
     tier: { name_ro: string; price_ron: number } | null
     notes: string | null
     preferred_payment_method: string | null
+    streak: {
+      month: number
+      discount_ron: number
+      price_due_ron: number
+      forced_start_date: string | null
+      has_scheduled: boolean
+    }
   }
 }) {
   const t = useTranslations("adminPlanRequests")
@@ -96,14 +103,30 @@ export function RequestRow({
         {request.tier ? (
           <>
             {" · "}
-            <span className="text-muted-foreground">
-              {request.tier.price_ron} RON
-            </span>
+            {request.streak.discount_ron > 0 ? (
+              <span className="text-muted-foreground">
+                <span className="line-through">
+                  {request.tier.price_ron} RON
+                </span>{" "}
+                <span className="font-medium text-foreground">
+                  {request.streak.price_due_ron} RON
+                </span>{" "}
+                ({t("streakRenewal", { month: request.streak.month })}, −
+                {request.streak.discount_ron} RON)
+              </span>
+            ) : (
+              <span className="text-muted-foreground">
+                {request.tier.price_ron} RON
+              </span>
+            )}
           </>
         ) : null}
       </div>
       {request.notes ? (
         <p className="text-sm text-muted-foreground">{request.notes}</p>
+      ) : null}
+      {request.streak.has_scheduled ? (
+        <p className="text-sm text-destructive">{t("alreadyScheduled")}</p>
       ) : null}
       <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto_auto]">
         <Select
@@ -118,12 +141,30 @@ export function RequestRow({
             <SelectItem value="cash">{t("cash")}</SelectItem>
           </SelectContent>
         </Select>
-        <Input
-          type="date"
-          value={startDate}
-          onChange={(e) => setStartDate(e.target.value)}
-        />
-        <Button type="button" onClick={approve} disabled={pending}>
+        {request.streak.forced_start_date ? (
+          // On-time renewal: the Postgres function chains the new plan right
+          // after the current one — the start date is not the admin's call.
+          <p className="self-center text-sm text-muted-foreground">
+            {t("startsAfterCurrent", {
+              date: format(
+                new Date(request.streak.forced_start_date),
+                "d MMM yyyy",
+                { locale: ro },
+              ),
+            })}
+          </p>
+        ) : (
+          <Input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+          />
+        )}
+        <Button
+          type="button"
+          onClick={approve}
+          disabled={pending || request.streak.has_scheduled}
+        >
           {t("approve")}
         </Button>
         <Button

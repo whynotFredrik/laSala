@@ -2,6 +2,10 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "crons": [
     {
+      "path": "/api/cron/activate-scheduled-plans",
+      "schedule": "10 22 * * *"
+    },
+    {
       "path": "/api/cron/expiration-warnings",
       "schedule": "0 6 * * *"
     },

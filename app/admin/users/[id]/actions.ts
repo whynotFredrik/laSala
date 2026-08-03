@@ -19,6 +19,7 @@ const adjustPlanSchema = z.object({
   sessionsTotal: z.coerce.number().int().min(0).max(500),
   sessionsUsed: z.coerce.number().int().min(0).max(500),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  streakMonth: z.coerce.number().int().min(1).max(120),
 })
 
 /**
@@ -35,6 +36,7 @@ export async function adjustPlanAction(
     sessionsTotal: formData.get("sessionsTotal"),
     sessionsUsed: formData.get("sessionsUsed"),
     endDate: formData.get("endDate"),
+    streakMonth: formData.get("streakMonth"),
   })
   if (!parsed.success) {
     return { status: "error", message: "invalid_input" }
@@ -52,12 +54,67 @@ export async function adjustPlanAction(
       sessions_total: parsed.data.sessionsTotal,
       sessions_used: parsed.data.sessionsUsed,
       end_date: parsed.data.endDate,
+      streak_month: parsed.data.streakMonth,
     })
     .eq("id", parsed.data.planId)
 
   if (error) {
     return { status: "error", message: "save_failed" }
   }
+  revalidatePath("/admin/users")
+  return { status: "ok" }
+}
+
+const grantPlanSchema = z.object({
+  userId: z.string().uuid(),
+  tierId: z.string().uuid(),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  sessionsRemaining: z.coerce.number().int().min(0).max(500),
+  streakMonth: z.coerce.number().int().min(1).max(120),
+})
+
+/**
+ * Grant a plan directly — for onboarding members who already train at the
+ * studio (no plan request involved). Wraps the `admin_grant_plan` Postgres
+ * function, which atomically retires the current active plan (and any queued
+ * renewal) and inserts the new one with the chosen tier, remaining sessions,
+ * and streak month ("vechimea").
+ */
+export async function grantPlanAction(
+  _prev: UserAdminState,
+  formData: FormData,
+): Promise<UserAdminState> {
+  const parsed = grantPlanSchema.safeParse({
+    userId: formData.get("userId"),
+    tierId: formData.get("tierId"),
+    startDate: formData.get("startDate"),
+    sessionsRemaining: formData.get("sessionsRemaining"),
+    streakMonth: formData.get("streakMonth"),
+  })
+  if (!parsed.success) {
+    return { status: "error", message: "invalid_input" }
+  }
+
+  await requireAdmin()
+  // Regular client so auth.uid() inside the RPC = admin and is_admin() holds.
+  const supabase = await createClient()
+  const { error } = await supabase.rpc("admin_grant_plan", {
+    p_user_id: parsed.data.userId,
+    p_tier_id: parsed.data.tierId,
+    p_start_date: parsed.data.startDate,
+    p_sessions_remaining: parsed.data.sessionsRemaining,
+    p_streak_month: parsed.data.streakMonth,
+  })
+  if (error) {
+    return {
+      status: "error",
+      message: /out of range/i.test(error.message)
+        ? "remaining_out_of_range"
+        : "save_failed",
+    }
+  }
+
+  revalidatePath(`/admin/users/${parsed.data.userId}`)
   revalidatePath("/admin/users")
   return { status: "ok" }
 }

@@ -31,10 +31,12 @@ export function RequestPlanButton({
   tierId,
   hasPending,
   hasActive,
+  hasScheduled,
 }: {
   tierId: string
   hasPending: boolean
   hasActive: boolean
+  hasScheduled: boolean
 }) {
   const t = useTranslations("plans")
   const tErrors = useTranslations("plansErrors")
@@ -43,7 +45,10 @@ export function RequestPlanButton({
   const [notes, setNotes] = useState("")
   const [pending, start] = useTransition()
 
-  const disabled = hasPending || hasActive
+  // An active plan no longer blocks requesting — that's how members renew
+  // early and build their streak. Only a pending request or an already
+  // queued (paid) renewal blocks a new one.
+  const disabled = hasPending || hasScheduled
 
   const submit = () => {
     start(async () => {
@@ -69,11 +74,13 @@ export function RequestPlanButton({
         disabled={disabled}
         onClick={() => setOpen(true)}
       >
-        {hasActive
-          ? t("alreadyActive")
+        {hasScheduled
+          ? t("alreadyRenewed")
           : hasPending
             ? t("alreadyPending")
-            : t("request")}
+            : hasActive
+              ? t("renew")
+              : t("request")}
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>

@@ -1,3 +1,4 @@
+import { addDays, formatISO } from "date-fns"
 import { getTranslations } from "next-intl/server"
 
 import {
@@ -6,6 +7,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import {
+  isRenewalOnTime,
+  nextStreakMonth,
+  streakDiscountRon,
+} from "@/lib/plans/streak"
 import { createClient } from "@/lib/supabase/server"
 
 import { RequestRow } from "./request-row"
@@ -19,10 +25,28 @@ export default async function PlanRequestsAdminPage() {
   const { data: requests } = await supabase
     .from("plan_requests")
     .select(
-      "id, created_at, status, notes, preferred_payment_method, plan_tiers(name_ro, price_male_ron, price_female_ron), profiles!user_id(full_name, email, sex)",
+      "id, created_at, status, notes, preferred_payment_method, user_id, plan_tiers(name_ro, category, price_male_ron, price_female_ron), profiles!user_id(full_name, email, sex)",
     )
     .eq("status", "pending")
     .order("created_at", { ascending: true })
+
+  // The streak decision needs each requester's current active plan (and
+  // whether a renewal is already queued). One query for all of them.
+  const userIds = [...new Set((requests ?? []).map((r) => r.user_id))]
+  const { data: plans } = userIds.length
+    ? await supabase
+        .from("plans")
+        .select("user_id, streak_month, end_date, is_active, is_scheduled")
+        .in("user_id", userIds)
+        .or("is_active.eq.true,is_scheduled.eq.true")
+    : { data: [] }
+
+  const activeByUser = new Map(
+    (plans ?? []).filter((p) => p.is_active).map((p) => [p.user_id, p]),
+  )
+  const scheduledUsers = new Set(
+    (plans ?? []).filter((p) => p.is_scheduled).map((p) => p.user_id),
+  )
 
   const list = (requests ?? []).map((r) => {
     const sex = r.profiles?.sex as "male" | "female" | null
@@ -33,6 +57,14 @@ export default async function PlanRequestsAdminPage() {
             : r.plan_tiers.price_male_ron,
         )
       : 0
+    const activePlan = activeByUser.get(r.user_id) ?? null
+    // "Approving right now" perspective: on-time renewal continues the
+    // streak and (for monthly tiers) applies the discount. Mirrors
+    // `approve_plan_request` in 0018.
+    const onTime = !!activePlan && isRenewalOnTime(activePlan.end_date)
+    const streakMonth = nextStreakMonth(activePlan)
+    const discount =
+      r.plan_tiers?.category === "monthly" ? streakDiscountRon(streakMonth) : 0
     return {
       id: r.id,
       created_at: r.created_at,
@@ -45,6 +77,20 @@ export default async function PlanRequestsAdminPage() {
       tier: r.plan_tiers
         ? { name_ro: r.plan_tiers.name_ro, price_ron: price }
         : null,
+      streak: {
+        month: streakMonth,
+        discount_ron: discount,
+        price_due_ron: Math.max(price - discount, 0),
+        // On-time renewals start the day after the current plan ends — the
+        // Postgres function forces this, so show it instead of a date input.
+        forced_start_date:
+          onTime && activePlan
+            ? formatISO(addDays(new Date(activePlan.end_date), 1), {
+                representation: "date",
+              })
+            : null,
+        has_scheduled: scheduledUsers.has(r.user_id),
+      },
     }
   })
 

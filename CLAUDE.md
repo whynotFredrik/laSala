@@ -39,7 +39,8 @@ The studio's actual booking rules. These are encoded in Postgres functions and i
 - **Plan required and not expired.** `sessions_used < plan_total` AND `plan.end_date >= today`.
 - **Cancellation:** allowed up to 3 hours before `session.start_at`. Within 3 hours, the booking is locked.
 - **Reschedule:** counts increment in `bookings.reschedule_count_in_week`; cap is 2 per ISO week.
-- **Freeze:** member submits a freeze request with `start_date` (must be ≥48h from now) and `duration_days` (3–14). Freezing extends `plan.end_date` by `duration_days`. Total frozen days in any rolling 6-month window may not exceed 14.
+- **Freeze:** member submits a freeze request with `start_date` (must be ≥48h from now) and `duration_days` (3–14). Freezing extends `plan.end_date` by `duration_days` (and shifts a scheduled renewal by the same amount). Total frozen days in any rolling 6-month window may not exceed 14.
+- **Renewal streak:** paying (admin approval) the next plan on or before the current plan's `end_date` (Bucharest date) continues the streak: `plans.streak_month = old + 1`, else resets to 1. Monthly tiers get a discount off the sex-based price by streak month — 2 → 15 RON, 3 → 30 RON, 4+ → 40 RON; 6-month promo tiers advance the counter but get no discount. On-time renewals are inserted as `is_scheduled` with `start_date = old.end_date + 1` (the member keeps their remaining days) and are activated by the daily `activate_due_scheduled_plans` cron. Encoded in `supabase/migrations/0018_renewal_streak.sql` and mirrored in `lib/plans/streak.ts` — change both together.
 
 ## Code style
 

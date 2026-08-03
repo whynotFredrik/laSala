@@ -44,6 +44,7 @@ export async function signUpAction(
     heightCm: formData.get("heightCm"),
     password: formData.get("password"),
     gdprConsent: formData.get("gdprConsent") === "on",
+    healthConsent: formData.get("healthConsent") === "on",
   })
 
   if (!parsed.success) {
@@ -108,6 +109,8 @@ export async function signUpAction(
       tdee_height_cm: heightCm,
       gdpr_consented_at: new Date().toISOString(),
       gdpr_version: gdpr?.version ?? null,
+      // Self-declaration of medical fitness for sport (0020).
+      health_consented_at: new Date().toISOString(),
       ...(trainer ? { trainer } : {}),
     })
     .eq("id", userId)

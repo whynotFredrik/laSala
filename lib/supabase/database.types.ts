@@ -540,40 +540,49 @@ export type Database = {
       plans: {
         Row: {
           created_at: string
+          discount_ron: number
           end_date: string
-          grace_used: number
           id: string
           is_active: boolean
+          is_scheduled: boolean
           payment_method: Database["public"]["Enums"]["payment_method"] | null
+          price_paid_ron: number | null
           sessions_total: number
           sessions_used: number
           start_date: string
+          streak_month: number
           tier_id: string
           user_id: string
         }
         Insert: {
           created_at?: string
+          discount_ron?: number
           end_date: string
-          grace_used?: number
           id?: string
           is_active?: boolean
+          is_scheduled?: boolean
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          price_paid_ron?: number | null
           sessions_total: number
           sessions_used?: number
           start_date: string
+          streak_month?: number
           tier_id: string
           user_id: string
         }
         Update: {
           created_at?: string
+          discount_ron?: number
           end_date?: string
-          grace_used?: number
           id?: string
           is_active?: boolean
+          is_scheduled?: boolean
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          price_paid_ron?: number | null
           sessions_total?: number
           sessions_used?: number
           start_date?: string
+          streak_month?: number
           tier_id?: string
           user_id?: string
         }
@@ -602,6 +611,7 @@ export type Database = {
           full_name: string | null
           gdpr_consented_at: string | null
           gdpr_version: string | null
+          health_consented_at: string | null
           id: string
           locale: string
           phone: string | null
@@ -621,6 +631,7 @@ export type Database = {
           full_name?: string | null
           gdpr_consented_at?: string | null
           gdpr_version?: string | null
+          health_consented_at?: string | null
           id: string
           locale?: string
           phone?: string | null
@@ -640,6 +651,7 @@ export type Database = {
           full_name?: string | null
           gdpr_consented_at?: string | null
           gdpr_version?: string | null
+          health_consented_at?: string | null
           id?: string
           locale?: string
           phone?: string | null
@@ -878,6 +890,41 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      activate_due_scheduled_plans: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      admin_grant_plan: {
+        Args: {
+          p_user_id: string
+          p_tier_id: string
+          p_start_date?: string
+          p_sessions_remaining?: number
+          p_streak_month?: number
+        }
+        Returns: {
+          created_at: string
+          discount_ron: number
+          end_date: string
+          id: string
+          is_active: boolean
+          is_scheduled: boolean
+          payment_method: Database["public"]["Enums"]["payment_method"] | null
+          price_paid_ron: number | null
+          sessions_total: number
+          sessions_used: number
+          start_date: string
+          streak_month: number
+          tier_id: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "plans"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       approve_plan_request: {
         Args: {
           p_payment_method: Database["public"]["Enums"]["payment_method"]
@@ -886,14 +933,17 @@ export type Database = {
         }
         Returns: {
           created_at: string
+          discount_ron: number
           end_date: string
-          grace_used: number
           id: string
           is_active: boolean
+          is_scheduled: boolean
           payment_method: Database["public"]["Enums"]["payment_method"] | null
+          price_paid_ron: number | null
           sessions_total: number
           sessions_used: number
           start_date: string
+          streak_month: number
           tier_id: string
           user_id: string
         }
@@ -1011,6 +1061,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      streak_discount_ron: { Args: { p_streak_month: number }; Returns: number }
       weekly_change_count: { Args: { p_user_id: string }; Returns: number }
     }
     Enums: {

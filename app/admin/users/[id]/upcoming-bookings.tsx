@@ -140,7 +140,7 @@ export function UpcomingBookings({
               <Select
                 value={selected[b.id] ?? ""}
                 onValueChange={(v) =>
-                  setSelected((prev) => ({ ...prev, [b.id]: v }))
+                  setSelected((prev) => ({ ...prev, [b.id]: v ?? "" }))
                 }
               >
                 <SelectTrigger>

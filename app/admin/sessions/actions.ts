@@ -6,6 +6,8 @@ import { fromZonedTime, toZonedTime } from "date-fns-tz"
 
 import { requireAdmin } from "@/lib/auth/get-user"
 import { STUDIO_TZ, unlockAtFor } from "@/lib/booking/rules"
+import { scheduleCalendarSync } from "@/lib/google/schedule-sync"
+import { reconcileCalendar, type SyncSummary } from "@/lib/google/sync"
 import { createServiceClient } from "@/lib/supabase/service"
 
 type ScheduleSlot = {
@@ -31,6 +33,29 @@ function mondayOf(anchor: Date) {
   return startOfDay(addDays(local, offset))
 }
 
+/**
+ * Why a recurring auto-booking was skipped. Mirrors the exceptions raised
+ * by the `book_session_for` Postgres function so the admin UI can show a
+ * translated reason instead of a bare count.
+ */
+export type RecurringSkipReason =
+  | "alreadyBooked"
+  | "sessionFull"
+  | "noActivePlan"
+  | "planExpired"
+  | "noSessionsLeft"
+  | "notAllowed"
+  | "unknown"
+
+export type RecurringSkip = {
+  userId: string
+  name: string
+  sessionDate: string
+  reason: RecurringSkipReason
+  /** Raw Postgres message, for the cron log / debugging. */
+  message: string
+}
+
 export type GenerateSessionsResult =
   | {
       status: "ok"
@@ -38,8 +63,22 @@ export type GenerateSessionsResult =
       skipped: number
       recurringBooked: number
       recurringSkipped: number
+      recurringSkips: RecurringSkip[]
     }
   | { status: "error"; message: string }
+
+function skipReasonFor(message: string): RecurringSkipReason {
+  const m = message.toLowerCase()
+  if (m.includes("already booked")) return "alreadyBooked"
+  if (m.includes("session is full")) return "sessionFull"
+  if (m.includes("no active plan")) return "noActivePlan"
+  if (m.includes("plan expires")) return "planExpired"
+  if (m.includes("no sessions remaining")) return "noSessionsLeft"
+  if (m.includes("admin only") || m.includes("permission denied")) {
+    return "notAllowed"
+  }
+  return "unknown"
+}
 
 /**
  * Core generator. Reads the schedule template and creates `sessions` rows
@@ -71,15 +110,20 @@ async function generateForWeekContaining(
 
   // Preload recurring-bookings grouped by template id so we don't hit the
   // DB once per slot per recurring user.
-  const { data: recurringRows } = await service
+  const { data: recurringRows, error: recErr } = await service
     .from("recurring_bookings")
-    .select("user_id, schedule_template_id")
+    .select("user_id, schedule_template_id, profiles!recurring_bookings_user_id_fkey(full_name, email)")
     .eq("is_active", true)
+  if (recErr) {
+    return { status: "error", message: "recurring_load_failed" }
+  }
   const recurringByTemplate = new Map<string, string[]>()
+  const nameByUser = new Map<string, string>()
   for (const r of recurringRows ?? []) {
     const list = recurringByTemplate.get(r.schedule_template_id) ?? []
     list.push(r.user_id)
     recurringByTemplate.set(r.schedule_template_id, list)
+    nameByUser.set(r.user_id, r.profiles.full_name ?? r.profiles.email)
   }
 
   const slots = template as ScheduleSlot[]
@@ -88,7 +132,11 @@ async function generateForWeekContaining(
   let created = 0
   let skipped = 0
   let recurringBooked = 0
-  let recurringSkipped = 0
+  const recurringSkips: RecurringSkip[] = []
+  // Every session touched (created or pre-existing) gets pushed to Google
+  // Calendar afterwards — recurring auto-books change rosters on existing
+  // sessions too.
+  const touchedSessionIds: string[] = []
 
   for (const slot of slots) {
     const dayLocal = addDays(weekStartLocal, slot.day_of_week)
@@ -142,23 +190,43 @@ async function generateForWeekContaining(
       sessionId = inserted.id
       created++
     }
+    touchedSessionIds.push(sessionId)
 
     // Auto-book everyone pinned to this slot. Failures are non-fatal —
-    // e.g. plan expired, already booked that day, etc.
+    // e.g. plan expired, already booked that day, etc. — but each one is
+    // recorded with its reason so the admin can see who was skipped and why.
     const recurringUserIds = recurringByTemplate.get(slot.id) ?? []
     for (const userId of recurringUserIds) {
       const { error: rpcErr } = await service.rpc("book_session_for", {
         p_user_id: userId,
         p_session_id: sessionId,
       })
-      if (rpcErr) recurringSkipped++
-      else recurringBooked++
+      if (rpcErr) {
+        recurringSkips.push({
+          userId,
+          name: nameByUser.get(userId) ?? userId,
+          sessionDate,
+          reason: skipReasonFor(rpcErr.message),
+          message: rpcErr.message,
+        })
+      } else {
+        recurringBooked++
+      }
     }
   }
 
+  scheduleCalendarSync(touchedSessionIds)
+
   revalidatePath("/admin/sessions")
   revalidatePath("/book")
-  return { status: "ok", created, skipped, recurringBooked, recurringSkipped }
+  return {
+    status: "ok",
+    created,
+    skipped,
+    recurringBooked,
+    recurringSkipped: recurringSkips.length,
+    recurringSkips,
+  }
 }
 
 /**
@@ -188,4 +256,16 @@ export async function generateNextWeekSessionsAction(): Promise<GenerateSessions
  */
 export async function generateNextWeekSessionsCron(): Promise<GenerateSessionsResult> {
   return generateForWeekContaining(addDays(new Date(), 7))
+}
+
+/**
+ * Manual full reconcile of the studio's Google Calendar (admin button).
+ * `force` re-pushes every session in the window so events edited by hand
+ * in Google are restored to what the app says.
+ */
+export async function syncCalendarAction(): Promise<SyncSummary> {
+  await requireAdmin()
+  const result = await reconcileCalendar({ force: true })
+  revalidatePath("/admin/sessions")
+  return result
 }

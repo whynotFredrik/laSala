@@ -1,7 +1,9 @@
 import { addDays, formatISO, startOfDay } from "date-fns"
 import { toZonedTime } from "date-fns-tz"
+import { ExternalLink } from "lucide-react"
 import { getTranslations } from "next-intl/server"
 
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
   Card,
   CardContent,
@@ -11,11 +13,17 @@ import {
 } from "@/components/ui/card"
 import { formatStudio } from "@/lib/booking/format"
 import { STUDIO_TZ } from "@/lib/booking/rules"
+import { isCalendarConfigured } from "@/lib/google/config"
 import { createClient } from "@/lib/supabase/server"
 
 import { GenerateNextWeekButton } from "./generate-button"
+import { SyncCalendarButton } from "./sync-calendar-button"
 
 const VIEW_DAYS = 14
+
+// The generate/sync actions invoked from this page push events to Google
+// Calendar via `after()`; give them room beyond the default 10s.
+export const maxDuration = 60
 
 /**
  * Per-trainer chip colors so the admin can scan a busy day and tell at a
@@ -51,6 +59,21 @@ export default async function AdminSessionsPage() {
     .order("start_at", { ascending: true })
     .order("trainer", { ascending: true })
 
+  // Google Calendar sync state for the sessions on screen (admin RLS read).
+  const calendarOn = isCalendarConfigured()
+  const sessionIds = (sessions ?? []).map((s) => s.id)
+  const { data: calendarRows } =
+    calendarOn && sessionIds.length > 0
+      ? await supabase
+          .from("calendar_events")
+          .select("session_id, html_link, last_error")
+          .in("session_id", sessionIds)
+      : { data: [] }
+  const calendarBySession = new Map(
+    (calendarRows ?? []).map((r) => [r.session_id, r]),
+  )
+  const calendarErrors = (calendarRows ?? []).filter((r) => r.last_error)
+
   // Group by session_date.
   const days = Array.from({ length: VIEW_DAYS }, (_, i) =>
     formatISO(addDays(todayLocal, i), { representation: "date" }),
@@ -70,8 +93,23 @@ export default async function AdminSessionsPage() {
             {t("subtitle", { days: VIEW_DAYS })}
           </p>
         </div>
-        <GenerateNextWeekButton />
+        <div className="flex flex-wrap gap-2">
+          {calendarOn ? <SyncCalendarButton /> : null}
+          <GenerateNextWeekButton />
+        </div>
       </header>
+
+      {calendarErrors.length > 0 ? (
+        <Alert variant="destructive">
+          <AlertTitle>{t("calendarErrorsTitle")}</AlertTitle>
+          <AlertDescription>
+            {t("calendarErrors", {
+              count: calendarErrors.length,
+              message: calendarErrors[0].last_error ?? "",
+            })}
+          </AlertDescription>
+        </Alert>
+      ) : null}
 
       {days.map((day) => {
         const list = byDay.get(day) ?? []
@@ -128,6 +166,18 @@ export default async function AdminSessionsPage() {
                               · {s.booked_count}/{s.capacity} {t("booked")}
                             </span>
                           </div>
+                          {calendarBySession.get(s.id)?.html_link ? (
+                            <a
+                              href={calendarBySession.get(s.id)?.html_link ?? "#"}
+                              target="_blank"
+                              rel="noreferrer"
+                              title={t("openInCalendar")}
+                              aria-label={t("openInCalendar")}
+                              className="text-muted-foreground hover:text-foreground"
+                            >
+                              <ExternalLink className="size-4" />
+                            </a>
+                          ) : null}
                         </div>
                         {roster.length > 0 ? (
                           <ul className="mt-2 space-y-0.5 text-sm">

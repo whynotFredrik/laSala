@@ -98,6 +98,7 @@ Datele dumneavoastră pot fi partajate cu:
 
 - **Supabase Inc.** (furnizor de bază de date și autentificare) — servere în UE (Frankfurt), conform GDPR
 - **Resend** (furnizor de email) — pentru notificări tranzacționale, conform GDPR
+- **Google LLC** (Google Calendar) — numele dumneavoastră și ora sesiunii rezervate sunt sincronizate în calendarul intern al studioului, folosit de antrenori pentru organizarea orelor; fără telefon sau email, conform GDPR (clauze contractuale standard UE)
 - **Vercel Inc.** (hosting aplicație) — date tehnice de cerere, conform GDPR
 - **Autorități fiscale române** (conform obligațiilor legale)
 

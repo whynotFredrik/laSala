@@ -6,6 +6,7 @@ import { z } from "zod"
 
 import { requireAdmin } from "@/lib/auth/get-user"
 import { translateBookingError } from "@/lib/booking/translate-error"
+import { scheduleCalendarSync } from "@/lib/google/schedule-sync"
 import { createClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/service"
 
@@ -126,6 +127,17 @@ const moveBookingSchema = z.object({
  * 2-per-week cap. Capacity and same-day-double-booking are still enforced
  * (an admin shouldn't be able to jam a member into a full slot).
  */
+/** Session a booking currently points at; null if not found. */
+async function loadBookingSessionId(bookingId: string): Promise<string | null> {
+  const service = createServiceClient()
+  const { data } = await service
+    .from("bookings")
+    .select("session_id")
+    .eq("id", bookingId)
+    .maybeSingle()
+  return data?.session_id ?? null
+}
+
 export async function adminMoveBookingAction(input: {
   userId: string
   bookingId: string
@@ -137,6 +149,7 @@ export async function adminMoveBookingAction(input: {
   }
 
   await requireAdmin()
+  const previousSessionId = await loadBookingSessionId(parsed.data.bookingId)
   // Use the regular client so auth.uid() inside the RPC = admin, and
   // is_admin() returns true.
   const supabase = await createClient()
@@ -147,6 +160,8 @@ export async function adminMoveBookingAction(input: {
   if (error) {
     return { status: "error" as const, message: translateBookingError(error.message) }
   }
+
+  scheduleCalendarSync([previousSessionId, parsed.data.newSessionId])
 
   revalidatePath(`/admin/users/${parsed.data.userId}`)
   revalidatePath("/admin/sessions")
@@ -174,12 +189,14 @@ export async function adminCancelBookingAction(input: {
 
   await requireAdmin()
   const supabase = await createClient()
-  const { error } = await supabase.rpc("cancel_booking", {
+  const { data: cancelled, error } = await supabase.rpc("cancel_booking", {
     p_booking_id: parsed.data.bookingId,
   })
   if (error) {
     return { status: "error" as const, message: translateBookingError(error.message) }
   }
+
+  scheduleCalendarSync([cancelled?.session_id])
 
   revalidatePath(`/admin/users/${parsed.data.userId}`)
   revalidatePath("/admin/sessions")

@@ -97,6 +97,7 @@ Never store image data in the database.
 - Vercel project linked to this repo, env vars set, custom domain attached
 - Supabase project on the appropriate region (Frankfurt is closest to RO)
 - Resend domain verified for `lasalastudio.ro` so emails send from `bookings@lasalastudio.ro` etc.
+- Optional: Google Calendar sync for the studio schedule — see `docs/GOOGLE_CALENDAR.md` (service account + shared calendar, three `GOOGLE_*` env vars)
 
 ## What this replaces
 

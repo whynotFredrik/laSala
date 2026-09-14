@@ -18,6 +18,9 @@ import {
  *   - "Generează săptămâna curentă" — fallback when the Sunday run was
  *     missed and members can't see this week's sessions.
  * Both call the same idempotent generator under the hood.
+ *
+ * When recurring auto-bookings were skipped, a second toast lists each
+ * member, the session date and the reason, so the admin can act on it.
  */
 export function GenerateNextWeekButton() {
   const t = useTranslations("adminSessions")
@@ -30,14 +33,35 @@ export function GenerateNextWeekButton() {
       const res = await fn()
       if (res.status === "error") {
         toast.error(t("generateFailed"))
-      } else {
-        toast.success(
-          t("generated", {
-            created: res.created,
-            skipped: res.skipped,
-            recurringBooked: res.recurringBooked,
-            recurringSkipped: res.recurringSkipped,
-          }),
+        return
+      }
+      toast.success(
+        t("generated", {
+          created: res.created,
+          skipped: res.skipped,
+          recurringBooked: res.recurringBooked,
+          recurringSkipped: res.recurringSkipped,
+        }),
+      )
+      if (res.recurringSkips.length > 0) {
+        toast.warning(
+          t("recurringSkipsTitle", { count: res.recurringSkips.length }),
+          {
+            duration: 15_000,
+            description: (
+              <ul className="mt-1 list-disc space-y-0.5 pl-4">
+                {res.recurringSkips.map((s) => (
+                  <li key={`${s.userId}-${s.sessionDate}`}>
+                    {t("recurringSkipLine", {
+                      name: s.name,
+                      date: s.sessionDate,
+                      reason: t(`recurringSkipReasons.${s.reason}`),
+                    })}
+                  </li>
+                ))}
+              </ul>
+            ),
+          },
         )
       }
     })

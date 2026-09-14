@@ -6,6 +6,7 @@ import { z } from "zod"
 import { formatStudio } from "@/lib/booking/format"
 import { translateBookingError } from "@/lib/booking/translate-error"
 import { sendEmail } from "@/lib/email/send"
+import { scheduleCalendarSync } from "@/lib/google/schedule-sync"
 import { createClient } from "@/lib/supabase/server"
 
 const uuid = z.string().uuid()
@@ -24,12 +25,13 @@ async function loadBookingContext(bookingId: string) {
   const { data } = await supabase
     .from("bookings")
     .select(
-      "id, sessions(start_at, classes(name_ro)), profiles!user_id(full_name, email, id)",
+      "id, session_id, sessions(start_at, classes(name_ro)), profiles!user_id(full_name, email, id)",
     )
     .eq("id", bookingId)
     .maybeSingle()
   if (!data || !data.sessions || !data.profiles) return null
   return {
+    sessionId: data.session_id,
     userId: data.profiles.id,
     name: data.profiles.full_name ?? "",
     email: data.profiles.email,
@@ -79,6 +81,8 @@ export async function bookSessionAction(
     }
   }
 
+  scheduleCalendarSync([parsed.data])
+
   revalidatePath("/home")
   revalidatePath("/book")
   revalidatePath("/history")
@@ -101,13 +105,15 @@ export async function cancelBookingAction(
   const ctx = await loadBookingContext(parsed.data)
 
   const supabase = await createClient()
-  const { error } = await supabase.rpc("cancel_booking", {
+  const { data: cancelled, error } = await supabase.rpc("cancel_booking", {
     p_booking_id: parsed.data,
   })
 
   if (error) {
     return { status: "error", message: translateBookingError(error.message) }
   }
+
+  scheduleCalendarSync([cancelled?.session_id ?? ctx?.sessionId])
 
   if (ctx) {
     await sendEmail({
@@ -144,6 +150,13 @@ export async function rescheduleBookingAction(
   }
 
   const supabase = await createClient()
+  // Old session id, captured before the move so both events get updated.
+  const { data: before } = await supabase
+    .from("bookings")
+    .select("session_id")
+    .eq("id", parsedBooking.data)
+    .maybeSingle()
+
   const { error } = await supabase.rpc("reschedule_booking", {
     p_booking_id: parsedBooking.data,
     p_new_session_id: parsedSession.data,
@@ -152,6 +165,8 @@ export async function rescheduleBookingAction(
   if (error) {
     return { status: "error", message: translateBookingError(error.message) }
   }
+
+  scheduleCalendarSync([before?.session_id, parsedSession.data])
 
   // Now session_id points at the new session — reload context for the email.
   const ctx = await loadBookingContext(parsedBooking.data)

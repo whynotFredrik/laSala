@@ -456,7 +456,25 @@
     "sessionsCount": "sesiuni",
     "noSessions": "Nicio sesiune.",
     "noTrainer": "Fără antrenor",
-    "booked": "rezervat"
+    "booked": "rezervat",
+    "recurringSkipsTitle": "Recurente sărite ({count})",
+    "recurringSkipLine": "{name} ({date}): {reason}",
+    "recurringSkipReasons": {
+      "alreadyBooked": "are deja o rezervare în ziua respectivă",
+      "sessionFull": "sesiunea este plină",
+      "noActivePlan": "nu are abonament activ",
+      "planExpired": "abonamentul expiră înainte de sesiune",
+      "noSessionsLeft": "nu mai are ședințe pe abonament",
+      "notAllowed": "funcția de rezervare a refuzat apelul (verifică migrarea 0017)",
+      "unknown": "eroare necunoscută"
+    },
+    "syncCalendar": "Sincronizează Google Calendar",
+    "syncCalendarDone": "Google Calendar: {upserted} actualizate, {skipped} neschimbate, {deleted} șterse, {failed} eșuate.",
+    "syncCalendarFailed": "Sincronizarea cu Google Calendar a eșuat.",
+    "syncCalendarNotConfigured": "Google Calendar nu este configurat (lipsesc variabilele GOOGLE_*).",
+    "calendarErrorsTitle": "Probleme la sincronizarea cu Google Calendar",
+    "calendarErrors": "{count} sesiuni nu s-au sincronizat. Ultima eroare: {message}",
+    "openInCalendar": "Deschide în Google Calendar"
   },
   "adminPlanTiers": {
     "title": "Tarife abonamente",

@@ -169,5 +169,9 @@ Work top-to-bottom. Each task is sized to be a single focused Claude Code sessio
   - _Sections needing legal review are marked `[REVIZUIRE]` — primarily: company legal name + CUI, plan tier names/prices, refund policy._
   - _Action: send `assets/gdpr-ro-v1.md` to a Romanian lawyer with GDPR experience. After approval, paste the Markdown body into `/admin/gdpr` and publish version "1.0"._
 - [ ] **10.5 Create real admin accounts** with strong passwords. Delete test accounts.
+- [x] **10.7 Google Calendar sync (app → calendar).** Studio sessions and rosters mirrored into a dedicated Google Calendar.
+  - _One-way push only; the app stays the source of truth. Service account + calendar shared with it (no OAuth UI). Feature-flagged by the three `GOOGLE_*` env vars — unset means no-op everywhere._
+  - _`lib/google/*`: REST client on `google-auth-library` (not `googleapis`, too heavy for serverless), deterministic event ids from the session UUID, content hash to skip unchanged events, `calendar_events` mapping table (migration 0018, `on delete set null` so reseeds leave detectable orphans)._
+  - _Triggers: `after()` hook in every booking mutation and in the week generator; daily `/api/cron/calendar-sync` reconcile; manual button on `/admin/sessions` with an error banner. Setup guide in `docs/GOOGLE_CALENDAR.md`. GDPR doc lists Google as a processor (member names in the studio calendar)._
 - [x] **10.6 Backup plan.** Document the Supabase backup schedule and how to restore.
   - _`docs/BACKUP.md` — covers automatic Supabase backups (Free 7d / Pro 30d + PITR), monthly manual export procedure, storage-bucket gap, restore procedures (full / single-row / auth-only), the "what's not backed up" list, disaster contacts (incl. 72h ANSPDCP breach notification), and a quarterly restore-drill recommendation._

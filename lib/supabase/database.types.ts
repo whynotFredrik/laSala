@@ -71,6 +71,53 @@ export type Database = {
           },
         ]
       }
+      calendar_events: {
+        Row: {
+          content_hash: string | null
+          created_at: string
+          google_calendar_id: string
+          google_event_id: string
+          html_link: string | null
+          id: string
+          last_error: string | null
+          session_id: string | null
+          synced_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          content_hash?: string | null
+          created_at?: string
+          google_calendar_id: string
+          google_event_id: string
+          html_link?: string | null
+          id?: string
+          last_error?: string | null
+          session_id?: string | null
+          synced_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          content_hash?: string | null
+          created_at?: string
+          google_calendar_id?: string
+          google_event_id?: string
+          html_link?: string | null
+          id?: string
+          last_error?: string | null
+          session_id?: string | null
+          synced_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_events_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       classes: {
         Row: {
           color: string | null

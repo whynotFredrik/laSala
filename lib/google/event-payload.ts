@@ -72,10 +72,19 @@ export function buildEventPayload(
   adminUrl: string,
 ): CalendarEventPayload {
   const time = formatStudio(session.start_at, "HH:mm")
-  const who = [session.trainer, session.className].filter(Boolean).join(" – ")
-  const summary = `${time}${who ? ` ${who}` : ""} (${session.booked_count}/${session.capacity})`
-
   const roster = [...session.roster].sort((a, b) => a.localeCompare(b, "ro"))
+  const occupancy = `(${session.booked_count}/${session.capacity})`
+  const slot = [session.trainer, session.className].filter(Boolean).join(" – ")
+
+  // Members go in the title: Google's week/month grid only shows the
+  // summary, and the trainer needs to see who is coming at a glance.
+  //   with bookings: "18:00 Andrei Maria, Popescu Ion (2/6) · Marina – Pilates"
+  //   empty:         "18:00 Marina – Pilates (0/6)"
+  const summary =
+    roster.length > 0
+      ? [`${time} ${roster.join(", ")} ${occupancy}`, slot].filter(Boolean).join(" · ")
+      : [`${time}${slot ? ` ${slot}` : ""}`, occupancy].join(" ")
+
   const description = [...roster, "", adminUrl].join("\n").trim()
 
   const colorId =

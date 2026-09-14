@@ -41,7 +41,7 @@ describe("deriveEventId", () => {
 describe("buildEventPayload", () => {
   it("renders Bucharest time in the summary and keeps UTC instants", () => {
     const p = buildEventPayload(base, adminUrl)
-    expect(p.summary).toBe("18:00 Marina – Pilates (2/6)")
+    expect(p.summary).toBe("18:00 Andrei Maria, Popescu Ion (2/6) · Marina – Pilates")
     expect(p.start).toEqual({
       dateTime: "2026-03-29T15:00:00.000Z",
       timeZone: "Europe/Bucharest",
@@ -59,6 +59,11 @@ describe("buildEventPayload", () => {
   it("sorts the roster and appends the admin link", () => {
     const p = buildEventPayload(base, adminUrl)
     expect(p.description).toBe(`Andrei Maria\nPopescu Ion\n\n${adminUrl}`)
+  })
+
+  it("keeps trainer and class in the title when nobody is booked", () => {
+    const p = buildEventPayload({ ...base, booked_count: 0, roster: [] }, adminUrl)
+    expect(p.summary).toBe("18:00 Marina – Pilates (0/6)")
   })
 
   it("omits missing trainer/class and colorId", () => {

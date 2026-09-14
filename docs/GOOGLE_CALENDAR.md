@@ -32,8 +32,9 @@ Triggers:
 - the admin button runs the same reconcile with `force`, re-pushing
   everything in the window.
 
-Event title: `18:00 Marina – Pilates (4/6)`. Description: booked members'
-full names, one per line, plus a link to `/admin/sessions`. Colour per
+Event title: `18:00 Andrei Maria, Popescu Ion (2/6) · Marina – Pilates`
+(`18:00 Marina – Pilates (0/6)` when nobody is booked). Description: the
+same names one per line, plus a link to `/admin/sessions`. Colour per
 trainer. No attendees are invited (service accounts cannot invite).
 
 ## One-time setup

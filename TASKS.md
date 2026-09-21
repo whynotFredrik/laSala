@@ -112,7 +112,7 @@ Work top-to-bottom. Each task is sized to be a single focused Claude Code sessio
   - _Approve calls the `approve_plan_request` Postgres function (atomic deactivate-old + insert-new + flip-status). Reject is a row update with optional reason. Email TODO Phase 8._
 - [x] **7.4 Schedule template.** Edit `schedule_template` rows: day of week, hour, capacity, enabled.
   - _Inline editor: per-day slot lists with enable/disable/delete buttons; "add slot" form at the top picks day, time (15-min increments), duration, capacity._
-- [x] **7.5 Generate week sessions.** Server action that reads template and creates session rows for next week. Idempotent (skips if a session at that slot already exists).
+- [x] **7.5 Generate week sessions.** ~~Server action~~ Now automatic: `lib/sessions/ensure-week.ts` run by `/api/cron/daily-sync` (see 11.2). Idempotent (skips if a session at that slot already exists).
   - _Anchors on the studio-local Monday of *next week*. For each enabled slot, computes `session_date`, `start_at`/`end_at`, and `unlock_at` via `unlockAtFor`. Skips rows that already exist (matched on `(session_date, start_at)`)._
 - [x] **7.6 Sessions view.** Weekly calendar, each session shows roster of members.
   - _Lists 14 days from today. Each session shows time, class, booked/capacity, and the roster of currently-booked members. The "Generate next week" button lives in this page header._
@@ -136,7 +136,7 @@ Work top-to-bottom. Each task is sized to be a single focused Claude Code sessio
 - [x] **8.6 Expiration warning cron.** `app/api/cron/expiration-warnings/route.ts` checks plans expiring in 7/3/1 days. Vercel cron daily at 09:00 Bucharest. Auth via `CRON_SECRET` header.
   - _Schedule in `vercel.json` is `0 6 * * *` UTC — that's 09:00 EEST (summer) / 08:00 EET (winter). Close enough for v1; if exact 09:00 local matters, add a second `0 7 * * *` entry and dedupe in the route._
 - [x] **8.7 Low sessions warning cron.** Same pattern, fires when a member has ≤2 sessions remaining.
-  - _Cheap dedupe via `email_log`: skip a member if a `lowSessionsWarning` row exists for them in the last 7 days, so they don't get hit daily._
+  - _Superseded by 11.5 (`/api/cron/renewal-reminders`, tier-aware thresholds, dedupe on the `notifications` table)._
 
 ## Phase 9 — Public + PWA
 
@@ -175,3 +175,17 @@ Work top-to-bottom. Each task is sized to be a single focused Claude Code sessio
   - _Triggers: `after()` hook in every booking mutation and in the week generator; daily `/api/cron/calendar-sync` reconcile; manual button on `/admin/sessions` with an error banner. Setup guide in `docs/GOOGLE_CALENDAR.md`. GDPR doc lists Google as a processor (member names in the studio calendar)._
 - [x] **10.6 Backup plan.** Document the Supabase backup schedule and how to restore.
   - _`docs/BACKUP.md` — covers automatic Supabase backups (Free 7d / Pro 30d + PITR), monthly manual export procedure, storage-bucket gap, restore procedures (full / single-row / auth-only), the "what's not backed up" list, disaster contacts (incl. 72h ANSPDCP breach notification), and a quarterly restore-drill recommendation._
+
+## Phase 11 — Renewals, automatic sync, notifications (Sep 2026)
+
+- [x] **11.1 Members not assigned to trainers.** Migration `0019` drops `profiles.trainer`. Sessions are filtered by sex (`trainersForSex`). Recurrence panel gets a trainer tab switcher (default tab = trainer for the member's sex).
+- [x] **11.2 Automatic session sync.** `/api/cron/daily-sync` (daily, 04:00 UTC) replaces the Sunday generator and the admin buttons. Current week every day; next week from Saturday (before the Sunday unlock). Migration `0020` links `sessions.schedule_template_id` and lets members read locked sessions they are booked into.
+  - _Fixed `unlockAtFor` (was landing on the Monday a week before the session instead of the Sunday before its week); 0020 heals `unlock_at` on future sessions._
+- [x] **11.3 Recurring pins materialise immediately.** `lib/booking/recurring.ts` (`bookPinsForUser`, `bookPinsForSessions`) used by the pin-add action, plan approval/activation and the daily sync. No grace: an exhausted/expired plan with nothing queued is skipped (retried daily).
+- [x] **11.4 Queued renewals.** Migration `0022`: `plans.status` (queued/active/ended), `activate_queued_plan`, `resolve_plan_for_booking` (shared by `book_session` / `book_session_for`), `approve_plan_request` queues when the current plan is still usable, `activate_due_queued_plans` for date-based expiry. Member can request while active; admin row shows queue vs activate.
+  - _Activation date = max(today, last booked session + 1) so the new month never starts before the old plan's booked sessions. Cancelling a booking still refunds the currently active plan (unchanged)._
+- [x] **11.5 Renewal reminders.** `/api/cron/renewal-reminders`: 12+ sessions → 3 before end, ≤8 → 2 before, then each drop; skipped when a request is pending or a plan is queued. Home-page banner with "Reînnoiește planul" → `/plans?tier=…` (opens the dialog). `expiration-warnings` now uses the Bucharest date and dedupes.
+- [x] **11.6 Notification inbox.** Migration `0021` `notifications` (RLS, `read_at`-only update grant), `lib/notifications/notify.ts` (in-app row + optional email, dedupe key), bell in the member nav, `/notifications` page. No web push yet.
+- [x] **11.7 Weekly recurring summary.** Saturday run of the daily sync sends each pinned member "your sessions next week" (booked + skipped with reason), deduped per week; a shorter note when an admin adds a pin that booked something.
+- [x] **11.9 Live schema reconciliation.** The project had branch `claude/app-features-addition-50b8ef` (grace removed, streak discounts, `is_scheduled` renewals, `admin_grant_plan`, health consent) applied through the SQL editor. Migration `0023` merges that with the status model: no grace in the booking functions, streak/price restored in `approve_plan_request`, `admin_grant_plan` and `freeze_membership` status-aware, `is_scheduled` and `activate_due_scheduled_plans` dropped. Migration history repaired (0001–0018 marked applied). The August branch is merged into this one: its app code (streak UI, grant-plan form, health consent at sign-up) is in, its four SQL files are recorded as schema-only 0024–0026 (already applied), and its scheduled-plans cron is dropped.
+- [x] **11.8 Tests.** Vitest for `lib/booking/rules.ts`, `lib/plans/rules.ts`, `skipReasonFor`, `weekly-summary`.

@@ -6,7 +6,7 @@
  * (Sunday-unlock, 3-hour cancel cutoff) are defined in local time.
  */
 
-import { addDays, formatISO, startOfDay } from "date-fns"
+import { addDays, formatISO, getDay, startOfDay } from "date-fns"
 import { fromZonedTime, toZonedTime } from "date-fns-tz"
 
 export const STUDIO_TZ = "Europe/Bucharest"
@@ -24,15 +24,16 @@ export function studioNow(now: Date = new Date()): Date {
  * Unlock instant for a given session date.
  *
  * Rule: sessions for week N+1 unlock at 00:00 Europe/Bucharest on Sunday of
- * week N. Concretely: subtract 6 days from the session's Monday, anchor at
- * midnight Bucharest, convert back to UTC.
+ * week N — the day before that week's Monday. Concretely: go back to the
+ * previous Sunday (Monday → 1 day, Sunday → 7 days), anchor at midnight
+ * Bucharest, convert back to UTC.
  */
 export function unlockAtFor(sessionDate: Date): Date {
   const local = toZonedTime(sessionDate, STUDIO_TZ)
-  // ISO weekday: Mon=1 ... Sun=7. We want the Sunday before the session's week.
+  // ISO weekday: Mon=1 ... Sun=7. Subtracting it lands on the Sunday before
+  // the session's week (a Sunday session unlocks with the rest of its week).
   const isoDay = local.getDay() === 0 ? 7 : local.getDay()
-  const daysToPriorSunday = isoDay + 6 // Monday → 7, Sunday → 13
-  const sunday = addDays(startOfDay(local), -daysToPriorSunday)
+  const sunday = addDays(startOfDay(local), -isoDay)
   return fromZonedTime(sunday, STUDIO_TZ)
 }
 
@@ -69,4 +70,36 @@ export function nextSevenDays(now: Date = new Date()): string[] {
   return Array.from({ length: 7 }, (_, i) =>
     formatISO(addDays(todayStart, i), { representation: "date" }),
   )
+}
+
+/**
+ * Today's date in the studio timezone as YYYY-MM-DD.
+ */
+export function studioDateISO(now: Date = new Date()): string {
+  return formatISO(startOfDay(toZonedTime(now, STUDIO_TZ)), {
+    representation: "date",
+  })
+}
+
+/**
+ * Studio-local Monday 00:00 of the ISO week containing `anchor`, as a
+ * "zoned" Date (the same shape `toZonedTime` returns). Our schedule
+ * template uses 0=Mon ... 6=Sun.
+ */
+export function studioWeekStart(anchor: Date = new Date()): Date {
+  const local = toZonedTime(anchor, STUDIO_TZ)
+  const day = getDay(local) // 0=Sun, 1=Mon, ..., 6=Sat
+  const offset = day === 0 ? -6 : 1 - day
+  return startOfDay(addDays(local, offset))
+}
+
+/**
+ * Whether next week's sessions should already exist. The daily sync keeps
+ * the current week up to date every day and adds week N+1 from Saturday
+ * of week N onward — one day before the Sunday-midnight unlock, so
+ * recurring pins get their seat before walk-in bookings open.
+ */
+export function nextWeekDue(now: Date = new Date()): boolean {
+  const day = getDay(toZonedTime(now, STUDIO_TZ))
+  return day === 6 || day === 0
 }

@@ -16,19 +16,18 @@ import { STUDIO_TZ } from "@/lib/booking/rules"
 import { isCalendarConfigured } from "@/lib/google/config"
 import { createClient } from "@/lib/supabase/server"
 
-import { GenerateNextWeekButton } from "./generate-button"
 import { SyncCalendarButton } from "./sync-calendar-button"
 
 const VIEW_DAYS = 14
 
-// The generate/sync actions invoked from this page push events to Google
-// Calendar via `after()`; give them room beyond the default 10s.
+// The calendar sync action invoked from this page pushes events to Google
+// Calendar via `after()`; give it room beyond the default 10s.
 export const maxDuration = 60
 
 /**
  * Per-trainer chip colors so the admin can scan a busy day and tell at a
  * glance whose slot is whose. Keep these in sync with any future trainer
- * additions (and with `trainer-select.tsx` if we ever color-code there).
+ * additions.
  */
 const TRAINER_BADGE: Record<string, string> = {
   Eugen:
@@ -95,7 +94,6 @@ export default async function AdminSessionsPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           {calendarOn ? <SyncCalendarButton /> : null}
-          <GenerateNextWeekButton />
         </div>
       </header>
 

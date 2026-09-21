@@ -422,6 +422,50 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          body: string
+          created_at: string
+          data: Json
+          dedupe_key: string | null
+          id: string
+          read_at: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          data?: Json
+          dedupe_key?: string | null
+          id?: string
+          read_at?: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          data?: Json
+          dedupe_key?: string | null
+          id?: string
+          read_at?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       nutrition_logs: {
         Row: {
           calories: number | null
@@ -586,41 +630,53 @@ export type Database = {
       }
       plans: {
         Row: {
+          activated_at: string | null
           created_at: string
+          discount_ron: number
           end_date: string
-          grace_used: number
           id: string
           is_active: boolean
           payment_method: Database["public"]["Enums"]["payment_method"] | null
+          price_paid_ron: number | null
           sessions_total: number
           sessions_used: number
           start_date: string
+          status: string
+          streak_month: number
           tier_id: string
           user_id: string
         }
         Insert: {
+          activated_at?: string | null
           created_at?: string
+          discount_ron?: number
           end_date: string
-          grace_used?: number
           id?: string
           is_active?: boolean
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          price_paid_ron?: number | null
           sessions_total: number
           sessions_used?: number
           start_date: string
+          status?: string
+          streak_month?: number
           tier_id: string
           user_id: string
         }
         Update: {
+          activated_at?: string | null
           created_at?: string
+          discount_ron?: number
           end_date?: string
-          grace_used?: number
           id?: string
           is_active?: boolean
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          price_paid_ron?: number | null
           sessions_total?: number
           sessions_used?: number
           start_date?: string
+          status?: string
+          streak_month?: number
           tier_id?: string
           user_id?: string
         }
@@ -649,6 +705,7 @@ export type Database = {
           full_name: string | null
           gdpr_consented_at: string | null
           gdpr_version: string | null
+          health_consented_at: string | null
           id: string
           locale: string
           phone: string | null
@@ -658,7 +715,6 @@ export type Database = {
           tdee_age: number | null
           tdee_height_cm: number | null
           tdee_value: number | null
-          trainer: string | null
           updated_at: string
         }
         Insert: {
@@ -668,6 +724,7 @@ export type Database = {
           full_name?: string | null
           gdpr_consented_at?: string | null
           gdpr_version?: string | null
+          health_consented_at?: string | null
           id: string
           locale?: string
           phone?: string | null
@@ -677,7 +734,6 @@ export type Database = {
           tdee_age?: number | null
           tdee_height_cm?: number | null
           tdee_value?: number | null
-          trainer?: string | null
           updated_at?: string
         }
         Update: {
@@ -687,6 +743,7 @@ export type Database = {
           full_name?: string | null
           gdpr_consented_at?: string | null
           gdpr_version?: string | null
+          health_consented_at?: string | null
           id?: string
           locale?: string
           phone?: string | null
@@ -696,7 +753,6 @@ export type Database = {
           tdee_age?: number | null
           tdee_height_cm?: number | null
           tdee_value?: number | null
-          trainer?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -846,6 +902,7 @@ export type Database = {
           created_at: string
           end_at: string
           id: string
+          schedule_template_id: string | null
           session_date: string
           start_at: string
           trainer: string | null
@@ -858,6 +915,7 @@ export type Database = {
           created_at?: string
           end_at: string
           id?: string
+          schedule_template_id?: string | null
           session_date: string
           start_at: string
           trainer?: string | null
@@ -870,6 +928,7 @@ export type Database = {
           created_at?: string
           end_at?: string
           id?: string
+          schedule_template_id?: string | null
           session_date?: string
           start_at?: string
           trainer?: string | null
@@ -881,6 +940,13 @@ export type Database = {
             columns: ["class_id"]
             isOneToOne: false
             referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sessions_schedule_template_id_fkey"
+            columns: ["schedule_template_id"]
+            isOneToOne: false
+            referencedRelation: "schedule_template"
             referencedColumns: ["id"]
           },
         ]
@@ -925,6 +991,90 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      activate_due_queued_plans: {
+        Args: never
+        Returns: {
+          activated_at: string | null
+          created_at: string
+          discount_ron: number
+          end_date: string
+          id: string
+          is_active: boolean
+          payment_method: Database["public"]["Enums"]["payment_method"] | null
+          price_paid_ron: number | null
+          sessions_total: number
+          sessions_used: number
+          start_date: string
+          status: string
+          streak_month: number
+          tier_id: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "plans"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      activate_queued_plan: {
+        Args: { p_activation_date?: string; p_plan_id: string }
+        Returns: {
+          activated_at: string | null
+          created_at: string
+          discount_ron: number
+          end_date: string
+          id: string
+          is_active: boolean
+          payment_method: Database["public"]["Enums"]["payment_method"] | null
+          price_paid_ron: number | null
+          sessions_total: number
+          sessions_used: number
+          start_date: string
+          status: string
+          streak_month: number
+          tier_id: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "plans"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      admin_grant_plan: {
+        Args: {
+          p_sessions_remaining?: number
+          p_start_date?: string
+          p_streak_month?: number
+          p_tier_id: string
+          p_user_id: string
+        }
+        Returns: {
+          activated_at: string | null
+          created_at: string
+          discount_ron: number
+          end_date: string
+          id: string
+          is_active: boolean
+          payment_method: Database["public"]["Enums"]["payment_method"] | null
+          price_paid_ron: number | null
+          sessions_total: number
+          sessions_used: number
+          start_date: string
+          status: string
+          streak_month: number
+          tier_id: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "plans"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       approve_plan_request: {
         Args: {
           p_payment_method: Database["public"]["Enums"]["payment_method"]
@@ -932,15 +1082,19 @@ export type Database = {
           p_start_date?: string
         }
         Returns: {
+          activated_at: string | null
           created_at: string
+          discount_ron: number
           end_date: string
-          grace_used: number
           id: string
           is_active: boolean
           payment_method: Database["public"]["Enums"]["payment_method"] | null
+          price_paid_ron: number | null
           sessions_total: number
           sessions_used: number
           start_date: string
+          status: string
+          streak_month: number
           tier_id: string
           user_id: string
         }
@@ -1058,6 +1212,34 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      resolve_plan_for_booking: {
+        Args: { p_session_date: string; p_user_id: string }
+        Returns: {
+          activated_at: string | null
+          created_at: string
+          discount_ron: number
+          end_date: string
+          id: string
+          is_active: boolean
+          payment_method: Database["public"]["Enums"]["payment_method"] | null
+          price_paid_ron: number | null
+          sessions_total: number
+          sessions_used: number
+          start_date: string
+          status: string
+          streak_month: number
+          tier_id: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "plans"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      streak_discount_ron: { Args: { p_streak_month: number }; Returns: number }
+      studio_today: { Args: never; Returns: string }
       weekly_change_count: { Args: { p_user_id: string }; Returns: number }
     }
     Enums: {
@@ -1080,12 +1262,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1109,11 +1291,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1134,11 +1316,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1159,11 +1341,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1176,11 +1358,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

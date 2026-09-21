@@ -65,10 +65,30 @@ export type TemplatePropsMap = {
     days: number
     endDate: string
   }
-  lowSessionsWarning: {
+  renewalReminder: {
     name: string
     planName: string
     remaining: number
+    renewUrl: string
+  }
+  planQueued: {
+    name: string
+    planName: string
+    sessionsTotal: number
+    currentEndDate: string
+  }
+  planActivated: {
+    name: string
+    planName: string
+    sessionsTotal: number
+    endDate: string
+  }
+  weeklySummary: {
+    name: string
+    weekLabel: string
+    booked: string[]
+    skipped: string[]
+    kind: "weekly" | "pinAdded"
   }
   adminPlanRequestNew: {
     userName: string
@@ -190,13 +210,68 @@ export const TEMPLATES: {
     sender: "bookings",
   }),
 
-  lowSessionsWarning: (p) => ({
-    subject: `Mai ai ${p.remaining} sesiuni rămase`,
-    heading: "Sesiuni puține rămase",
+  renewalReminder: (p) => ({
+    subject: `Mai ai ${p.remaining} sesiuni — reînnoiește-ți abonamentul`,
+    heading: "Ține-ți ritmul: reînnoiește-ți abonamentul",
     body: `
       <p>Salut, ${escape(p.name)}!</p>
-      <p>Mai ai <strong>${escape(p.remaining)} sesiuni</strong> disponibile în <strong>${escape(p.planName)}</strong>.</p>
-      <p>Pregătește-ți următorul abonament pentru a nu rămâne fără sesiuni.</p>
+      <p>Mai ai <strong>${escape(p.remaining)} sesiuni</strong> în <strong>${escape(p.planName)}</strong>.</p>
+      <p>Solicită acum următorul abonament: se activează automat când cel curent se termină, iar rezervările tale recurente continuă fără pauză.</p>
+      <p><a href="${escape(p.renewUrl)}">Reînnoiește planul</a></p>
+    `,
+    sender: "bookings",
+  }),
+
+  planQueued: (p) => ({
+    subject: `Următorul abonament este pregătit — ${p.planName}`,
+    heading: "Următorul tău abonament este pregătit",
+    body: `
+      <p>Salut, ${escape(p.name)}!</p>
+      <p>Abonamentul <strong>${escape(p.planName)}</strong> (${escape(p.sessionsTotal)} sesiuni) a fost aprobat și așteaptă.</p>
+      <p>Se activează automat când abonamentul curent se termină — la epuizarea sesiunilor sau cel târziu pe <strong>${escape(p.currentEndDate)}</strong>. Nu trebuie să faci nimic.</p>
+    `,
+    sender: "payments",
+  }),
+
+  planActivated: (p) => ({
+    subject: `Abonament activ — ${p.planName}`,
+    heading: "Noul tău abonament este activ!",
+    body: `
+      <p>Salut, ${escape(p.name)}!</p>
+      <p>Abonamentul <strong>${escape(p.planName)}</strong> a intrat în vigoare.</p>
+      <p><strong>Sesiuni disponibile:</strong> ${escape(p.sessionsTotal)}</p>
+      <p><strong>Valabil până la:</strong> ${escape(p.endDate)}</p>
+      <p>Rezervările tale recurente au fost reluate automat.</p>
+    `,
+    sender: "payments",
+  }),
+
+  weeklySummary: (p) => ({
+    subject:
+      p.kind === "weekly"
+        ? `Sesiunile tale în săptămâna ${p.weekLabel}`
+        : "Rezervări recurente adăugate",
+    heading:
+      p.kind === "weekly"
+        ? `Săptămâna ${p.weekLabel}`
+        : "Rezervări recurente adăugate",
+    body: `
+      <p>Salut, ${escape(p.name)}!</p>
+      ${
+        p.booked.length > 0
+          ? `<p>Rezervări confirmate:</p><ul>${p.booked
+              .map((line) => `<li>${escape(line)}</li>`)
+              .join("")}</ul>`
+          : "<p>Nu s-a putut face nicio rezervare recurentă.</p>"
+      }
+      ${
+        p.skipped.length > 0
+          ? `<p>Nu s-au putut rezerva:</p><ul>${p.skipped
+              .map((line) => `<li>${escape(line)}</li>`)
+              .join("")}</ul>`
+          : ""
+      }
+      <p>Dacă nu mai poți ajunge, anulează cu cel puțin 3 ore înainte, din aplicație.</p>
     `,
     sender: "bookings",
   }),

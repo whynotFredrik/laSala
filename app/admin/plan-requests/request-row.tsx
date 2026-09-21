@@ -33,6 +33,11 @@ export function RequestRow({
     tier: { name_ro: string; price_ron: number } | null
     notes: string | null
     preferred_payment_method: string | null
+    /** Member still has a usable plan → approval queues the new one. */
+    willQueue: boolean
+    /** A queued plan already exists → approval would be refused. */
+    hasQueued: boolean
+    streak: { month: number; discount_ron: number; price_due_ron: number }
   }
 }) {
   const t = useTranslations("adminPlanRequests")
@@ -55,10 +60,10 @@ export function RequestRow({
       const res = await approvePlanRequestAction({
         requestId: request.id,
         paymentMethod,
-        startDate,
+        startDate: request.willQueue ? undefined : startDate,
       })
       if (res.status === "error") toast.error(t(res.message as "approve_failed"))
-      else toast.success(t("approved"))
+      else toast.success(t(res.outcome === "queued" ? "approvedQueued" : "approved"))
     })
 
   const reject = () =>
@@ -96,16 +101,41 @@ export function RequestRow({
         {request.tier ? (
           <>
             {" · "}
-            <span className="text-muted-foreground">
-              {request.tier.price_ron} RON
-            </span>
+            {request.streak.discount_ron > 0 ? (
+              <span className="text-muted-foreground">
+                <span className="line-through">
+                  {request.tier.price_ron} RON
+                </span>{" "}
+                <span className="font-medium text-foreground">
+                  {request.streak.price_due_ron} RON
+                </span>{" "}
+                ({t("streakRenewal", { month: request.streak.month })}, −
+                {request.streak.discount_ron} RON)
+              </span>
+            ) : (
+              <span className="text-muted-foreground">
+                {request.tier.price_ron} RON
+              </span>
+            )}
           </>
         ) : null}
       </div>
       {request.notes ? (
         <p className="text-sm text-muted-foreground">{request.notes}</p>
       ) : null}
-      <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto_auto]">
+      <p className="text-xs text-muted-foreground">
+        {request.willQueue ? t("willQueue") : t("willActivate")}
+      </p>
+      {request.hasQueued ? (
+        <p className="text-sm text-destructive">{t("alreadyScheduled")}</p>
+      ) : null}
+      <div
+        className={
+          request.willQueue
+            ? "grid gap-2 sm:grid-cols-[1fr_auto_auto]"
+            : "grid gap-2 sm:grid-cols-[1fr_1fr_auto_auto]"
+        }
+      >
         <Select
           value={paymentMethod}
           onValueChange={(v) => setPaymentMethod(v as PaymentMethod)}
@@ -118,12 +148,18 @@ export function RequestRow({
             <SelectItem value="cash">{t("cash")}</SelectItem>
           </SelectContent>
         </Select>
-        <Input
-          type="date"
-          value={startDate}
-          onChange={(e) => setStartDate(e.target.value)}
-        />
-        <Button type="button" onClick={approve} disabled={pending}>
+        {request.willQueue ? null : (
+          <Input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+          />
+        )}
+        <Button
+          type="button"
+          onClick={approve}
+          disabled={pending || request.hasQueued}
+        >
           {t("approve")}
         </Button>
         <Button

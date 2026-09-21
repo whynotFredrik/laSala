@@ -40,6 +40,9 @@ export const signUpSchema = z.object({
   gdprConsent: z
     .boolean()
     .refine((v) => v === true, { message: "gdpr_required" }),
+  healthConsent: z
+    .boolean()
+    .refine((v) => v === true, { message: "health_required" }),
 })
 export type SignUpInput = z.infer<typeof signUpSchema>
 

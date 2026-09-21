@@ -41,6 +41,7 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith("/progress") ||
     pathname.startsWith("/profile") ||
     pathname.startsWith("/plans") ||
+    pathname.startsWith("/notifications") ||
     pathname.startsWith("/admin")
 
   // Logged-in users hitting auth pages → home

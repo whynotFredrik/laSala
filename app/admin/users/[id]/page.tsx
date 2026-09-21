@@ -19,7 +19,7 @@ import { createClient } from "@/lib/supabase/server"
 import { AdjustPlanForm } from "./adjust-plan-form"
 import { DeleteUserForm } from "./delete-user-form"
 import { DietarySummary } from "./dietary-summary"
-import { TrainerSelect } from "./trainer-select"
+import { GrantPlanForm } from "./grant-plan-form"
 import { UpcomingBookings } from "./upcoming-bookings"
 
 const SIGNED_URL_TTL_SEC = 60 * 60 // 1 hour
@@ -35,7 +35,9 @@ export default async function AdminUserDetailPage({
 
   const [
     { data: profile },
+    { data: tiers },
     { data: activePlan },
+    { data: queuedPlan },
     { data: dietary },
     { data: recentBookings },
     { data: pendingRequests },
@@ -45,10 +47,21 @@ export default async function AdminUserDetailPage({
   ] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", id).maybeSingle(),
     supabase
+      .from("plan_tiers")
+      .select("id, name_ro, sessions_per_month, duration_months")
+      .eq("is_active", true)
+      .order("display_order", { ascending: true }),
+    supabase
       .from("plans")
       .select("*, plan_tiers(name_ro)")
       .eq("user_id", id)
-      .eq("is_active", true)
+      .eq("status", "active")
+      .maybeSingle(),
+    supabase
+      .from("plans")
+      .select("id, sessions_total, plan_tiers(name_ro)")
+      .eq("user_id", id)
+      .eq("status", "queued")
       .maybeSingle(),
     supabase
       .from("dietary_questionnaires")
@@ -177,12 +190,11 @@ export default async function AdminUserDetailPage({
 
       <Card>
         <CardHeader>
-          <CardTitle>{t("trainer")}</CardTitle>
-          <CardDescription>{t("trainerDesc")}</CardDescription>
+          <CardTitle>{t("memberTools")}</CardTitle>
+          <CardDescription>{t("memberToolsDesc")}</CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-wrap items-center justify-between gap-4">
-          <TrainerSelect userId={profile.id} current={profile.trainer} />
-          <div className="flex gap-2">
+        <CardContent>
+          <div className="flex flex-wrap gap-2">
             <Link
               href={`/admin/users/${profile.id}/recurring`}
               className={buttonVariants({ variant: "outline", size: "sm" })}
@@ -204,23 +216,43 @@ export default async function AdminUserDetailPage({
           <CardTitle>{t("activePlan")}</CardTitle>
           <CardDescription>
             {activePlan
-              ? activePlan.plan_tiers?.name_ro ?? activePlan.id
+              ? `${activePlan.plan_tiers?.name_ro ?? activePlan.id} · ${t(
+                  "streakMonthLabel",
+                  { month: activePlan.streak_month },
+                )}`
               : t("noActivePlan")}
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-6">
           {activePlan ? (
             <AdjustPlanForm
               planId={activePlan.id}
               sessionsTotal={activePlan.sessions_total}
               sessionsUsed={activePlan.sessions_used}
               endDate={activePlan.end_date}
+              streakMonth={activePlan.streak_month}
             />
           ) : (
             <p className="text-sm text-muted-foreground">
               {t("approveRequestHint")}
             </p>
           )}
+          <div className={activePlan ? "border-t pt-4" : undefined}>
+            <h3 className="mb-3 text-sm font-medium">{t("grantPlanTitle")}</h3>
+            <GrantPlanForm
+              userId={id}
+              tiers={tiers ?? []}
+              hasActivePlan={!!activePlan}
+            />
+          </div>
+          {queuedPlan ? (
+            <p className="mt-3 rounded border bg-muted/40 p-2 text-sm">
+              {t("queuedPlan", {
+                name: queuedPlan.plan_tiers?.name_ro ?? queuedPlan.id,
+                sessions: queuedPlan.sessions_total,
+              })}
+            </p>
+          ) : null}
         </CardContent>
       </Card>
 

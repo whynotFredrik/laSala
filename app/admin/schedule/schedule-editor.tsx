@@ -19,6 +19,7 @@ import {
   deleteScheduleSlotAction,
   upsertScheduleSlotAction,
 } from "./actions"
+import { ALL_TRAINERS } from "@/lib/constants"
 
 const DAYS = [
   { value: 0, key: "monday" },
@@ -30,7 +31,7 @@ const DAYS = [
   { value: 6, key: "sunday" },
 ] as const
 
-const TRAINERS = ["Eugen", "Marina", "Ana"] as const
+const TRAINERS = ALL_TRAINERS
 
 export type ScheduleSlot = {
   id: string

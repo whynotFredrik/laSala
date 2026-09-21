@@ -6,7 +6,7 @@
       "schedule": "0 6 * * *"
     },
     {
-      "path": "/api/cron/low-sessions-warning",
+      "path": "/api/cron/renewal-reminders",
       "schedule": "0 6 * * *"
     },
     {
@@ -14,8 +14,8 @@
       "schedule": "0 6 * * *"
     },
     {
-      "path": "/api/cron/generate-week",
-      "schedule": "0 6 * * 0"
+      "path": "/api/cron/daily-sync",
+      "schedule": "0 4 * * *"
     },
     {
       "path": "/api/cron/calendar-sync",

@@ -4,6 +4,9 @@ import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
 import { requireAdmin } from "@/lib/auth/get-user"
+import { bookPinsForUser, touchedSessionIds } from "@/lib/booking/recurring"
+import { scheduleCalendarSync } from "@/lib/google/schedule-sync"
+import { sendPinAddedNotice } from "@/lib/notifications/send-weekly-summary"
 import { createServiceClient } from "@/lib/supabase/service"
 
 const addSchema = z.object({
@@ -12,12 +15,18 @@ const addSchema = z.object({
 })
 
 export type RecurringResult =
-  | { status: "ok" }
+  | { status: "ok"; booked: number; skipped: number }
   | { status: "error"; message: string }
 
 /**
  * Pin a member to a schedule slot. The partial unique index handles the
  * "already recurring on this slot" case — surfaced as `already_recurring`.
+ *
+ * The pin is materialised right away against every future session of
+ * that slot in the current + next studio week (if those sessions exist
+ * yet), so the member sees the bookings immediately instead of after the
+ * next sync. Refusals (no plan, full, ...) are counted as `skipped` and
+ * retried by the daily sync.
  */
 export async function addRecurringAction(input: {
   userId: string
@@ -41,8 +50,20 @@ export async function addRecurringAction(input: {
     }
     return { status: "error", message: "save_failed" }
   }
+  const outcomes = await bookPinsForUser(service, parsed.data.userId, {
+    templateId: parsed.data.scheduleTemplateId,
+  })
+  scheduleCalendarSync(touchedSessionIds(outcomes))
+  await sendPinAddedNotice(service, parsed.data.userId, outcomes)
+
   revalidatePath(`/admin/users/${parsed.data.userId}/recurring`)
-  return { status: "ok" }
+  revalidatePath(`/admin/users/${parsed.data.userId}`)
+  revalidatePath("/admin/sessions")
+  return {
+    status: "ok",
+    booked: outcomes.filter((o) => o.status === "booked").length,
+    skipped: outcomes.filter((o) => o.status === "skipped").length,
+  }
 }
 
 export async function removeRecurringAction(input: {

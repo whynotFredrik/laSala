@@ -1,35 +1,32 @@
 import { getTranslations } from "next-intl/server"
 
 import { NotificationsInbox } from "@/components/notifications/inbox"
-import { requireUser } from "@/lib/auth/get-user"
+import { requireAdmin } from "@/lib/auth/get-user"
 import { createClient } from "@/lib/supabase/server"
 
-import { markAllReadAction } from "./actions"
+import { markAdminNotificationsReadAction } from "./actions"
 
 const PAGE_SIZE = 50
 
-/** Where a member notification's call-to-action should lead, if anywhere. */
+/** Where an admin notification's call-to-action should lead. */
 function hrefFor(type: string, data: unknown): string | null {
-  const d = (data ?? {}) as { tier_id?: string }
+  const d = (data ?? {}) as { user_id?: string }
   switch (type) {
-    case "renewal_reminder":
-    case "expiration_warning":
-      return d.tier_id ? `/plans?tier=${d.tier_id}` : "/plans"
-    case "plan_activated":
-      return "/home"
-    case "weekly_summary":
-    case "pins_booked":
-      return "/history"
+    case "admin_plan_request":
+      return "/admin/plan-requests"
+    case "admin_expiry_digest":
+      return "/admin/users"
     default:
-      return null
+      return d.user_id ? `/admin/users/${d.user_id}` : null
   }
 }
 
-export default async function NotificationsPage() {
-  const { user } = await requireUser()
+export default async function AdminNotificationsPage() {
+  const { user } = await requireAdmin()
   const supabase = await createClient()
   const t = await getTranslations("notifications")
 
+  // Admins can read every row under RLS; the inbox is still their own.
   const { data: rows } = await supabase
     .from("notifications")
     .select("id, type, title, body, data, read_at, created_at")
@@ -41,8 +38,8 @@ export default async function NotificationsPage() {
     <NotificationsInbox
       rows={rows ?? []}
       hrefFor={hrefFor}
-      markAllRead={markAllReadAction}
-      subtitle={t("subtitle")}
+      markAllRead={markAdminNotificationsReadAction}
+      subtitle={t("subtitleAdmin")}
     />
   )
 }

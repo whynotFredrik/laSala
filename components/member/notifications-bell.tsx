@@ -6,10 +6,16 @@ import { getUser } from "@/lib/auth/get-user"
 import { createClient } from "@/lib/supabase/server"
 
 /**
- * Bell icon with the unread-notification count for the signed-in member.
- * Server component: the count is read under the member's own RLS.
+ * Bell icon with the unread-notification count for the signed-in user.
+ * Server component: the count is read for the user's own rows. `href` is
+ * the inbox page (`/notifications` for members, `/admin/notifications`
+ * for admins).
  */
-export async function NotificationsBell() {
+export async function NotificationsBell({
+  href = "/notifications",
+}: {
+  href?: string
+} = {}) {
   const t = await getTranslations("notifications")
   const user = await getUser()
   if (!user) return null
@@ -26,7 +32,7 @@ export async function NotificationsBell() {
 
   return (
     <Link
-      href="/notifications"
+      href={href}
       aria-label={label}
       title={label}
       className="relative inline-flex size-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"

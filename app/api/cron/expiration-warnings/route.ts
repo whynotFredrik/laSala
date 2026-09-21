@@ -4,6 +4,7 @@ import { ro } from "date-fns/locale"
 
 import { formatStudio } from "@/lib/booking/format"
 import { studioNow } from "@/lib/booking/rules"
+import { notifyAdmins } from "@/lib/notifications/admins"
 import { notificationCopy, notify } from "@/lib/notifications/notify"
 import { expiryDedupeKey } from "@/lib/plans/rules"
 import { createServiceClient } from "@/lib/supabase/service"
@@ -16,7 +17,8 @@ const TARGETS = [7, 3, 1] as const
 /**
  * Daily cron — for every active plan that expires in exactly 7, 3, or 1
  * days from today (studio calendar, Europe/Bucharest), notify the member
- * in-app + by email.
+ * in-app + by email. Admins get one digest per day listing everyone who
+ * was warned (deduped per studio date).
  *
  * Auth: `Authorization: Bearer ${CRON_SECRET}` (Vercel sends it).
  */
@@ -30,6 +32,7 @@ export async function GET(request: NextRequest) {
   const nowLocal = studioNow()
   const copy = notificationCopy()
   let sent = 0
+  const digest: string[] = []
 
   for (const days of TARGETS) {
     const targetIso = formatStudio(addDays(nowLocal, days), "yyyy-MM-dd")
@@ -37,7 +40,7 @@ export async function GET(request: NextRequest) {
     const { data: plans } = await service
       .from("plans")
       .select(
-        "id, user_id, tier_id, end_date, profiles!plans_user_id_fkey(id, email, full_name), plan_tiers(name_ro)",
+        "id, user_id, tier_id, end_date, sessions_total, sessions_used, profiles!plans_user_id_fkey(id, email, full_name), plan_tiers(name_ro)",
       )
       .eq("status", "active")
       .eq("end_date", targetIso)
@@ -68,8 +71,37 @@ export async function GET(request: NextRequest) {
         },
       })
       if (result.status === "sent") sent++
+      digest.push(
+        copy("adminExpiryLine", {
+          name: plan.profiles.full_name ?? plan.profiles.email,
+          planName,
+          endDate,
+          days,
+          remaining: Math.max(plan.sessions_total - plan.sessions_used, 0),
+        }),
+      )
     }
   }
 
-  return NextResponse.json({ ok: true, sent })
+  let admins = 0
+  if (digest.length > 0) {
+    const today = formatStudio(nowLocal, "yyyy-MM-dd")
+    const dateLabel = formatStudio(nowLocal, "d MMMM yyyy")
+    const result = await notifyAdmins({
+      type: "admin_expiry_digest",
+      title: copy("adminExpiryTitle", { count: digest.length }),
+      body: [copy("adminExpiryIntro"), ...digest.map((l) => `• ${l}`)].join(
+        "\n",
+      ),
+      data: { date: today, count: digest.length },
+      dedupeKey: `admin_expiry:${today}`,
+      email: {
+        template: "adminExpiryDigest",
+        props: { date: dateLabel, lines: digest },
+      },
+    })
+    admins = result.notified
+  }
+
+  return NextResponse.json({ ok: true, sent, admins })
 }

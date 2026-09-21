@@ -5,6 +5,8 @@ import { z } from "zod"
 
 import { requireUser } from "@/lib/auth/get-user"
 import { sendEmail } from "@/lib/email/send"
+import { notifyAdmins } from "@/lib/notifications/admins"
+import { notificationCopy } from "@/lib/notifications/notify"
 import { getActivePlan } from "@/lib/plans/active"
 import { nextStreakMonth, streakDiscountRon } from "@/lib/plans/streak"
 import { createClient } from "@/lib/supabase/server"
@@ -26,9 +28,9 @@ export type PlanRequestState =
   | { status: "error"; message: string }
 
 /**
- * Inserts a `plan_requests` row in `pending` state, then sends two emails:
- *   1. Acknowledgement to the requester (here's how to pay).
- *   2. Notification to the admin inbox (who/what/how-much).
+ * Inserts a `plan_requests` row in `pending` state, then:
+ *   1. Emails the requester an acknowledgement (here's how to pay).
+ *   2. Notifies every admin — in-app row + email (who/what/how-much).
  *
  * The partial unique index `(user_id) where status = 'pending'` blocks
  * duplicate pending requests — surface that as `already_pending`. An
@@ -46,12 +48,16 @@ export async function requestPlanAction(
   const { user, profile } = await requireUser()
   const supabase = await createClient()
 
-  const { error } = await supabase.from("plan_requests").insert({
-    user_id: user.id,
-    tier_id: parsed.data.tierId,
-    preferred_payment_method: parsed.data.paymentMethod ?? null,
-    notes: parsed.data.notes ?? null,
-  })
+  const { data: inserted, error } = await supabase
+    .from("plan_requests")
+    .insert({
+      user_id: user.id,
+      tier_id: parsed.data.tierId,
+      preferred_payment_method: parsed.data.paymentMethod ?? null,
+      notes: parsed.data.notes ?? null,
+    })
+    .select("id")
+    .single()
 
   if (error) {
     if (error.code === "23505") {
@@ -97,22 +103,32 @@ export async function requestPlanAction(
       props: { name: recipientName, planName, price },
     })
 
-    // 2. Admin notification — to the configured admin inbox if set.
-    const adminTo = process.env.ADMIN_NOTIFICATION_EMAIL
-    if (adminTo) {
-      await sendEmail({
-        to: adminTo,
-        userId: null,
+    // 2. Admins: in-app notification + email, one per admin account.
+    const copy = notificationCopy()
+    const paymentMethod = parsed.data.paymentMethod ?? "—"
+    await notifyAdmins({
+      type: "admin_plan_request",
+      title: copy("adminPlanRequestTitle", { name: recipientName }),
+      body: copy("adminPlanRequestBody", {
+        name: recipientName,
+        email: profile.email,
+        planName,
+        price,
+        paymentMethod,
+      }),
+      data: { request_id: inserted?.id ?? null, user_id: user.id },
+      dedupeKey: inserted ? `admin_plan_request:${inserted.id}` : undefined,
+      email: {
         template: "adminPlanRequestNew",
         props: {
           userName: recipientName,
           userEmail: profile.email,
           planName,
           price,
-          paymentMethod: parsed.data.paymentMethod ?? "—",
+          paymentMethod,
         },
-      })
-    }
+      },
+    })
   }
 
   revalidatePath("/plans")

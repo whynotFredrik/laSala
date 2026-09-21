@@ -91,6 +91,10 @@ export type TemplatePropsMap = {
     price: number
     paymentMethod: string
   }
+  adminExpiryDigest: {
+    date: string
+    lines: string[]
+  }
 }
 
 export type TemplateId = keyof TemplatePropsMap
@@ -270,6 +274,17 @@ export const TEMPLATES: {
         <li><strong>Metodă preferată:</strong> ${escape(p.paymentMethod)}</li>
       </ul>
       <p>Aprobă cererea din panoul de administrare după primirea plății.</p>
+    `,
+    sender: "hello",
+  }),
+
+  adminExpiryDigest: (p) => ({
+    subject: `Abonamente care expiră curând — ${p.date}`,
+    heading: "Abonamente care expiră curând",
+    body: `
+      <p>Membrii de mai jos au fost anunțați astăzi că abonamentul lor expiră:</p>
+      <ul>${p.lines.map((line) => `<li>${escape(line)}</li>`).join("")}</ul>
+      <p>Poți vedea detaliile fiecăruia în panoul de administrare, la Utilizatori.</p>
     `,
     sender: "hello",
   }),

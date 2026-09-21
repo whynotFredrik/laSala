@@ -1,5 +1,6 @@
 import { AdminNavLinks } from "@/components/admin/admin-nav-links"
 import { Logo } from "@/components/brand/logo"
+import { NotificationsBell } from "@/components/member/notifications-bell"
 import { SignOutButton } from "@/components/member/sign-out-button"
 
 /**
@@ -16,6 +17,7 @@ export function AdminNav() {
           Admin
         </span>
         <AdminNavLinks />
+        <NotificationsBell href="/admin/notifications" />
         <SignOutButton />
       </div>
     </header>

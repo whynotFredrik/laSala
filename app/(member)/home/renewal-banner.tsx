@@ -9,18 +9,17 @@ import { remainingSessions, renewalReminderDue } from "@/lib/plans/rules"
 /**
  * Persistent "renew now" nudge on the home page. Same rule as the
  * renewal-reminders cron (`renewalReminderDue`), shown until the member
- * has a queued plan or a pending request.
+ * has a pending request (an approved renewal merges into the plan, which
+ * lifts the remaining count above the threshold by itself).
  */
 export async function RenewalBanner({
   plan,
-  queued,
   hasPendingRequest,
 }: {
   plan: PlanWithTier | null
-  queued: PlanWithTier | null
   hasPendingRequest: boolean
 }) {
-  if (!plan || queued || hasPendingRequest || !renewalReminderDue(plan)) {
+  if (!plan || hasPendingRequest || !renewalReminderDue(plan)) {
     return null
   }
   const t = await getTranslations("home")

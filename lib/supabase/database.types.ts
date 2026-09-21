@@ -991,58 +991,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      activate_due_queued_plans: {
-        Args: never
-        Returns: {
-          activated_at: string | null
-          created_at: string
-          discount_ron: number
-          end_date: string
-          id: string
-          is_active: boolean
-          payment_method: Database["public"]["Enums"]["payment_method"] | null
-          price_paid_ron: number | null
-          sessions_total: number
-          sessions_used: number
-          start_date: string
-          status: string
-          streak_month: number
-          tier_id: string
-          user_id: string
-        }[]
-        SetofOptions: {
-          from: "*"
-          to: "plans"
-          isOneToOne: false
-          isSetofReturn: true
-        }
-      }
-      activate_queued_plan: {
-        Args: { p_activation_date?: string; p_plan_id: string }
-        Returns: {
-          activated_at: string | null
-          created_at: string
-          discount_ron: number
-          end_date: string
-          id: string
-          is_active: boolean
-          payment_method: Database["public"]["Enums"]["payment_method"] | null
-          price_paid_ron: number | null
-          sessions_total: number
-          sessions_used: number
-          start_date: string
-          status: string
-          streak_month: number
-          tier_id: string
-          user_id: string
-        }
-        SetofOptions: {
-          from: "*"
-          to: "plans"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
       admin_grant_plan: {
         Args: {
           p_sessions_remaining?: number

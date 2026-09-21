@@ -18,8 +18,7 @@ const TARGETS = [7, 3, 1] as const
  * Daily cron — for every active plan that expires in exactly 7, 3, or 1
  * days from today (studio calendar, Europe/Bucharest), notify the member
  * in-app + by email. Admins get one digest per day listing everyone who
- * was warned (deduped per studio date). Members with a queued plan are skipped: their
- * renewal is already sorted.
+ * was warned (deduped per studio date).
  *
  * Auth: `Authorization: Bearer ${CRON_SECRET}` (Vercel sends it).
  */
@@ -47,18 +46,8 @@ export async function GET(request: NextRequest) {
       .eq("end_date", targetIso)
     if (!plans || plans.length === 0) continue
 
-    const { data: queued } = await service
-      .from("plans")
-      .select("user_id")
-      .in(
-        "user_id",
-        plans.map((p) => p.user_id),
-      )
-      .eq("status", "queued")
-    const hasQueued = new Set((queued ?? []).map((q) => q.user_id))
-
     for (const plan of plans) {
-      if (!plan.profiles || hasQueued.has(plan.user_id)) continue
+      if (!plan.profiles) continue
       const planName = plan.plan_tiers?.name_ro ?? "—"
       const endDate = format(new Date(plan.end_date), "d MMMM yyyy", {
         locale: ro,

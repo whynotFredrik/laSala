@@ -7,7 +7,7 @@ import { requireUser } from "@/lib/auth/get-user"
 import { sendEmail } from "@/lib/email/send"
 import { notifyAdmins } from "@/lib/notifications/admins"
 import { notificationCopy } from "@/lib/notifications/notify"
-import { getActivePlan, getQueuedPlan } from "@/lib/plans/active"
+import { getActivePlan } from "@/lib/plans/active"
 import { nextStreakMonth, streakDiscountRon } from "@/lib/plans/streak"
 import { createClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/service"
@@ -34,8 +34,8 @@ export type PlanRequestState =
  *
  * The partial unique index `(user_id) where status = 'pending'` blocks
  * duplicate pending requests — surface that as `already_pending`. An
- * active plan does NOT block a request (the new plan is queued on
- * approval), but an already-queued plan does (`already_queued`).
+ * active plan does NOT block a request: an on-time renewal merges into it
+ * on approval.
  */
 export async function requestPlanAction(
   input: z.infer<typeof requestSchema>,
@@ -47,10 +47,6 @@ export async function requestPlanAction(
 
   const { user, profile } = await requireUser()
   const supabase = await createClient()
-
-  if (await getQueuedPlan(supabase, user.id)) {
-    return { status: "error", message: "already_queued" }
-  }
 
   const { data: inserted, error } = await supabase
     .from("plan_requests")

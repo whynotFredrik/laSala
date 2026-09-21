@@ -9,7 +9,6 @@ import { createServiceClient } from "@/lib/supabase/service"
 import messages from "@/messages/ro.json"
 
 export type NotificationType =
-  | "plan_queued"
   | "plan_activated"
   | "renewal_reminder"
   | "weekly_summary"

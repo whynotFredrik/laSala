@@ -19,13 +19,7 @@ import {
   streakDiscountRon,
 } from "@/lib/plans/streak"
 
-export async function PlanCard({
-  plan,
-  queued,
-}: {
-  plan: PlanWithTier | null
-  queued: PlanWithTier | null
-}) {
+export async function PlanCard({ plan }: { plan: PlanWithTier | null }) {
   const t = await getTranslations("home")
 
   if (!plan) {
@@ -33,18 +27,10 @@ export async function PlanCard({
       <Alert>
         <AlertTitle>{t("noActivePlan")}</AlertTitle>
         <AlertDescription className="flex flex-col gap-3">
-          {queued ? (
-            <span>
-              {t("nextPlanQueued", { name: queued.plan_tiers?.name_ro ?? "" })}
-            </span>
-          ) : (
-            <>
-              <span>{t("noActivePlanBody")}</span>
-              <Link href="/plans" className={buttonVariants({ size: "sm" })}>
-                {t("choosePlan")}
-              </Link>
-            </>
-          )}
+          <span>{t("noActivePlanBody")}</span>
+          <Link href="/plans" className={buttonVariants({ size: "sm" })}>
+            {t("choosePlan")}
+          </Link>
         </AlertDescription>
       </Alert>
     )
@@ -53,9 +39,9 @@ export async function PlanCard({
   const remaining = Math.max(plan.sessions_total - plan.sessions_used, 0)
   const expired = new Date(plan.end_date) < new Date()
   const exhausted = remaining === 0
-  // Nothing left on this plan and nothing queued: the member has to renew
-  // before the next booking.
-  const needsRenewal = (expired || exhausted) && !queued
+  // Nothing left on this plan: the member has to renew before the next
+  // booking.
+  const needsRenewal = expired || exhausted
 
   // Consistency streak: where the member stands and what paying the next
   // plan on time gets them. Discount applies to monthly tiers only.
@@ -91,24 +77,17 @@ export async function PlanCard({
             {t("streakTitle", { month: plan.streak_month })}
           </p>
           <p className="text-muted-foreground">
-            {queued
-              ? t("streakQueued", { month: queued.streak_month })
-              : !onTime
-                ? t("streakLost")
-                : nextDiscount > 0
-                  ? t("streakNextDiscount", {
-                      date: deadline,
-                      month: nextStreak,
-                      discount: nextDiscount,
-                    })
-                  : t("streakNext", { date: deadline, month: nextStreak })}
+            {!onTime
+              ? t("streakLost")
+              : nextDiscount > 0
+                ? t("streakNextDiscount", {
+                    date: deadline,
+                    month: nextStreak,
+                    discount: nextDiscount,
+                  })
+                : t("streakNext", { date: deadline, month: nextStreak })}
           </p>
         </div>
-        {queued ? (
-          <p className="mt-3 rounded border bg-muted/40 p-2 text-xs">
-            {t("nextPlanQueued", { name: queued.plan_tiers?.name_ro ?? "" })}
-          </p>
-        ) : null}
         {needsRenewal ? (
           <div className="mt-3 rounded border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
             <p className="font-medium">{t("needsRenewalTitle")}</p>

@@ -2,7 +2,6 @@ import { format } from "date-fns"
 import { ro } from "date-fns/locale"
 import { getTranslations } from "next-intl/server"
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
   Card,
   CardContent,
@@ -11,7 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { requireUser } from "@/lib/auth/get-user"
-import { getMemberPlans } from "@/lib/plans/active"
+import { getActivePlan } from "@/lib/plans/active"
 import {
   isRenewalOnTime,
   nextStreakMonth,
@@ -32,7 +31,7 @@ export default async function PlansPage({
   const t = await getTranslations("plans")
   const { tier: highlightTier } = await searchParams
 
-  const [{ data: tiers }, { data: pending }, { active, queued }] =
+  const [{ data: tiers }, { data: pending }, active] =
     await Promise.all([
       supabase
         .from("plan_tiers")
@@ -47,11 +46,10 @@ export default async function PlansPage({
         .eq("user_id", user.id)
         .eq("status", "pending")
         .maybeSingle(),
-      getMemberPlans(supabase, user.id),
+      getActivePlan(supabase, user.id),
     ])
 
   const hasPending = !!pending
-  const hasQueued = !!queued
   // Pick the price column for the member's sex. Falls back to male price
   // for the rare case a member's sex is somehow unset (legacy accounts).
   const sex = (profile.sex as "male" | "female" | null) ?? "male"
@@ -70,34 +68,13 @@ export default async function PlansPage({
         </p>
       </header>
 
-      {queued ? (
-        <Alert>
-          <AlertTitle>
-            {t("queuedTitle", { name: queued.plan_tiers?.name_ro ?? "" })}
-          </AlertTitle>
-          <AlertDescription>
-            {active
-              ? t("queuedBody", {
-                  endDate: format(new Date(active.end_date), "d MMM yyyy", {
-                    locale: ro,
-                  }),
-                })
-              : t("queuedBodyNoActive")}
-          </AlertDescription>
-        </Alert>
-      ) : null}
-
       <Card>
         <CardHeader>
           <CardTitle className="text-base">{t("streakTitle")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-1 text-sm text-muted-foreground">
           <p>{t("streakIntro")}</p>
-          {queued ? (
-            <p className="font-medium text-foreground">
-              {t("streakQueued", { month: queued.streak_month })}
-            </p>
-          ) : onTime && active ? (
+          {onTime && active ? (
             <p className="font-medium text-foreground">
               {t("streakNext", {
                 month: nextStreak,
@@ -119,8 +96,7 @@ export default async function PlansPage({
           )
           // Streak discount applies to monthly tiers only; 6-month promo
           // packages already have their discount baked into the price.
-          const discount =
-            tier.category === "monthly" && !queued ? nextDiscount : 0
+          const discount = tier.category === "monthly" ? nextDiscount : 0
           const finalPrice = Math.max(price - discount, 0)
           return (
             <Card key={tier.id}>
@@ -152,7 +128,6 @@ export default async function PlansPage({
                 <RequestPlanButton
                   tierId={tier.id}
                   hasPending={hasPending}
-                  hasQueued={hasQueued}
                   isRenewal={!!active}
                   highlight={highlightTier === tier.id}
                 />

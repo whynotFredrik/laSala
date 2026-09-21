@@ -9,12 +9,12 @@ type PlanRow = Database["public"]["Tables"]["plans"]["Row"]
 type TierRow = Database["public"]["Tables"]["plan_tiers"]["Row"]
 
 export const PLAN_WITH_TIER =
-  "*, plan_tiers(name_ro, name_en, duration_months, sessions_per_month)" as const
+  "*, plan_tiers(name_ro, name_en, category, duration_months, sessions_per_month)" as const
 
 export type PlanWithTier = PlanRow & {
   plan_tiers: Pick<
     TierRow,
-    "name_ro" | "name_en" | "duration_months" | "sessions_per_month"
+    "name_ro" | "name_en" | "category" | "duration_months" | "sessions_per_month"
   > | null
 }
 

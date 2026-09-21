@@ -37,9 +37,12 @@ type CandidateSession = {
 
 /**
  * Lists a member's upcoming bookings. Each row has:
- *   - a "Mută în…" dropdown of candidate sessions (matching trainer, within
- *     the next ~14 days, with spots available); picking one fires the
- *     reschedule action.
+ *   - a "Mută în…" dropdown of candidate sessions (within the next ~14
+ *     days, with spots available); picking one fires the reschedule
+ *     action. By default only the same trainer's sessions are offered;
+ *     the "show other trainers" switch opens the list to everyone — for
+ *     when a trainer is away and the member has to be moved to a
+ *     colleague's slot. Same-trainer sessions always come first.
  *   - a "Anulează" button for direct cancellation (admin can bypass the
  *     3-hour window).
  */
@@ -58,6 +61,7 @@ export function UpcomingBookings({
   // Per-booking selected target session id — keeps the dropdown reset cleanly
   // between rows.
   const [selected, setSelected] = useState<Record<string, string>>({})
+  const [allTrainers, setAllTrainers] = useState(false)
 
   if (bookings.length === 0) {
     return (
@@ -110,80 +114,102 @@ export function UpcomingBookings({
   }
 
   return (
-    <ul className="space-y-3">
-      {bookings.map((b) => {
-        // Candidates compatible with this booking: must be different,
-        // matching trainer when known.
-        const compatible = candidates.filter(
-          (c) =>
-            c.id !== b.sessionId &&
-            (b.trainer == null ||
-              c.trainer == null ||
-              c.trainer === b.trainer) &&
-            c.spotsLeft > 0,
-        )
+    <div className="space-y-3">
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          className="size-4"
+          checked={allTrainers}
+          onChange={(e) => {
+            setAllTrainers(e.target.checked)
+            setSelected({})
+          }}
+        />
+        {t("showOtherTrainers")}
+      </label>
+      <ul className="space-y-3">
+        {bookings.map((b) => {
+          // Candidates: a different session with spots left. Same trainer
+          // only unless the switch is on; same trainer first either way.
+          const sameTrainer = (c: CandidateSession) =>
+            b.trainer == null || c.trainer == null || c.trainer === b.trainer
+          const compatible = candidates
+            .filter(
+              (c) =>
+                c.id !== b.sessionId &&
+                c.spotsLeft > 0 &&
+                (allTrainers || sameTrainer(c)),
+            )
+            .sort((x, y) => {
+              const sx = sameTrainer(x) ? 0 : 1
+              const sy = sameTrainer(y) ? 0 : 1
+              return sx !== sy ? sx - sy : x.startAt.localeCompare(y.startAt)
+            })
 
-        return (
-          <li key={b.id} className="space-y-2 rounded border p-3">
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <p className="text-sm font-medium">
-                {b.className ?? "Sesiune"} ·{" "}
-                {formatStudio(b.startAt, "EEEE d MMM, HH:mm")}
-              </p>
-              {b.trainer ? (
-                <span className="rounded-full bg-muted px-2 py-0.5 text-xs">
-                  {b.trainer}
-                </span>
-              ) : null}
-            </div>
-            <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto]">
-              <Select
-                value={selected[b.id] ?? ""}
-                onValueChange={(v) =>
-                  setSelected((prev) => ({ ...prev, [b.id]: v ?? "" }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={t("pickTargetSession")} />
-                </SelectTrigger>
-                <SelectContent>
-                  {compatible.length === 0 ? (
-                    <SelectItem value="__none" disabled>
-                      {t("noCompatibleSessions")}
-                    </SelectItem>
-                  ) : (
-                    compatible.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {formatStudio(c.startAt, "EEE d MMM, HH:mm")}
-                        {c.trainer ? ` · ${c.trainer}` : ""}
-                        {` · ${c.spotsLeft} ${t("spotsLeftShort")}`}
+          return (
+            <li key={b.id} className="space-y-2 rounded border p-3">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <p className="text-sm font-medium">
+                  {b.className ?? "Sesiune"} ·{" "}
+                  {formatStudio(b.startAt, "EEEE d MMM, HH:mm")}
+                </p>
+                {b.trainer ? (
+                  <span className="rounded-full bg-muted px-2 py-0.5 text-xs">
+                    {b.trainer}
+                  </span>
+                ) : null}
+              </div>
+              <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto]">
+                <Select
+                  value={selected[b.id] ?? ""}
+                  onValueChange={(v) =>
+                    setSelected((prev) => ({ ...prev, [b.id]: v ?? "" }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={t("pickTargetSession")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {compatible.length === 0 ? (
+                      <SelectItem value="__none" disabled>
+                        {allTrainers
+                          ? t("noCompatibleSessions")
+                          : t("noSameTrainerSessions")}
                       </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-              <Button
-                type="button"
-                size="sm"
-                onClick={() => handleMove(b)}
-                disabled={pending || !selected[b.id]}
-              >
-                {t("move")}
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                onClick={() => handleCancel(b)}
-                disabled={pending}
-              >
-                {t("cancel")}
-              </Button>
-            </div>
-          </li>
-        )
-      })}
-    </ul>
+                    ) : (
+                      compatible.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {formatStudio(c.startAt, "EEE d MMM, HH:mm")}
+                          {c.trainer ? ` · ${c.trainer}` : ""}
+                          {` · ${c.spotsLeft} ${t("spotsLeftShort")}`}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => handleMove(b)}
+                  disabled={pending || !selected[b.id]}
+                >
+                  {t("move")}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  onClick={() => handleCancel(b)}
+                  disabled={pending}
+                >
+                  {t("cancel")}
+                </Button>
+              </div>
+            </li>
+          )
+        })}
+      </ul>
+    </div>
   )
 }

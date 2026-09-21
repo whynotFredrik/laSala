@@ -13,8 +13,10 @@ import { requireUser } from "@/lib/auth/get-user"
 import { getActivePlan } from "@/lib/plans/active"
 import {
   isRenewalOnTime,
+  isStreakTier,
   nextStreakMonth,
   streakDiscountRon,
+  toStreakRef,
 } from "@/lib/plans/streak"
 import { createClient } from "@/lib/supabase/server"
 
@@ -54,9 +56,13 @@ export default async function PlansPage({
   // for the rare case a member's sex is somehow unset (legacy accounts).
   const sex = (profile.sex as "male" | "female" | null) ?? "male"
 
-  // Streak: the month a renewal paid today would land on, and its discount.
+  // Streak: the month a monthly renewal paid today would land on, and its
+  // discount. Only monthly → monthly counts; a member on a promotion has
+  // no streak and starts at month 1 with their first monthly plan.
+  const activeRef = toStreakRef(active)
+  const onPromo = !!active && !isStreakTier(active.plan_tiers?.category)
   const onTime = !!active && isRenewalOnTime(active.end_date)
-  const nextStreak = nextStreakMonth(active)
+  const nextStreak = nextStreakMonth(activeRef, "monthly")
   const nextDiscount = streakDiscountRon(nextStreak)
 
   return (
@@ -74,7 +80,9 @@ export default async function PlansPage({
         </CardHeader>
         <CardContent className="space-y-1 text-sm text-muted-foreground">
           <p>{t("streakIntro")}</p>
-          {onTime && active ? (
+          {onPromo ? (
+            <p className="font-medium text-foreground">{t("streakPromo")}</p>
+          ) : onTime && active ? (
             <p className="font-medium text-foreground">
               {t("streakNext", {
                 month: nextStreak,
@@ -96,7 +104,7 @@ export default async function PlansPage({
           )
           // Streak discount applies to monthly tiers only; 6-month promo
           // packages already have their discount baked into the price.
-          const discount = tier.category === "monthly" ? nextDiscount : 0
+          const discount = isStreakTier(tier.category) ? nextDiscount : 0
           const finalPrice = Math.max(price - discount, 0)
           return (
             <Card key={tier.id}>

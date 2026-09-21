@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest"
 
 import {
   isRenewalOnTime,
+  isStreakTier,
   nextStreakMonth,
   streakDiscountRon,
+  toStreakRef,
 } from "./streak"
 
 describe("streakDiscountRon", () => {
@@ -52,20 +54,51 @@ describe("isRenewalOnTime", () => {
 
 describe("nextStreakMonth", () => {
   const now = new Date("2026-08-10T12:00:00Z")
-
-  it("starts at 1 with no active plan", () => {
-    expect(nextStreakMonth(null, now)).toBe(1)
+  const monthly = (streak_month: number, end_date: string) => ({
+    streak_month,
+    end_date,
+    tier_category: "monthly",
   })
 
-  it("increments when the active plan has not expired", () => {
-    expect(
-      nextStreakMonth({ streak_month: 2, end_date: "2026-08-20" }, now),
-    ).toBe(3)
+  it("starts at 1 with no active plan", () => {
+    expect(nextStreakMonth(null, "monthly", now)).toBe(1)
+  })
+
+  it("increments monthly → monthly when the active plan has not expired", () => {
+    expect(nextStreakMonth(monthly(2, "2026-08-20"), "monthly", now)).toBe(3)
   })
 
   it("resets to 1 when the active plan already expired", () => {
+    expect(nextStreakMonth(monthly(3, "2026-08-01"), "monthly", now)).toBe(1)
+  })
+
+  it("is 1 whenever a promotion is involved", () => {
+    // Buying a promo: no streak, regardless of the current plan.
+    expect(nextStreakMonth(monthly(3, "2026-08-20"), "promo_6m", now)).toBe(1)
+    // Coming off a promo: the first monthly plan starts the streak.
     expect(
-      nextStreakMonth({ streak_month: 3, end_date: "2026-08-01" }, now),
+      nextStreakMonth(
+        { streak_month: 1, end_date: "2026-08-20", tier_category: "promo_6m" },
+        "monthly",
+        now,
+      ),
     ).toBe(1)
+    expect(nextStreakMonth(null, "promo_6m", now)).toBe(1)
+  })
+})
+
+describe("toStreakRef / isStreakTier", () => {
+  it("copies the tier category and treats only monthly as streak", () => {
+    expect(
+      toStreakRef({
+        streak_month: 2,
+        end_date: "2026-08-20",
+        plan_tiers: { category: "promo_6m" },
+      }),
+    ).toEqual({ streak_month: 2, end_date: "2026-08-20", tier_category: "promo_6m" })
+    expect(toStreakRef(null)).toBeNull()
+    expect(isStreakTier("monthly")).toBe(true)
+    expect(isStreakTier("promo_6m")).toBe(false)
+    expect(isStreakTier(null)).toBe(false)
   })
 })

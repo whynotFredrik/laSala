@@ -52,7 +52,7 @@ export default async function AdminUserDetailPage({
       .order("display_order", { ascending: true }),
     supabase
       .from("plans")
-      .select("*, plan_tiers(name_ro)")
+      .select("*, plan_tiers(name_ro, category)")
       .eq("user_id", id)
       .eq("status", "active")
       .maybeSingle(),
@@ -209,10 +209,11 @@ export default async function AdminUserDetailPage({
           <CardTitle>{t("activePlan")}</CardTitle>
           <CardDescription>
             {activePlan
-              ? `${activePlan.plan_tiers?.name_ro ?? activePlan.id} · ${t(
-                  "streakMonthLabel",
-                  { month: activePlan.streak_month },
-                )}`
+              ? activePlan.plan_tiers?.category === "monthly"
+                ? `${activePlan.plan_tiers.name_ro} · ${t("streakMonthLabel", {
+                    month: activePlan.streak_month,
+                  })}`
+                : `${activePlan.plan_tiers?.name_ro ?? activePlan.id} · ${t("streakPromoLabel")}`
               : t("noActivePlan")}
           </CardDescription>
         </CardHeader>

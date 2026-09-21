@@ -91,7 +91,7 @@ export async function approvePlanRequestAction(input: {
   const { data: plan, error } = await supabase.rpc("approve_plan_request", {
     p_request_id: parsed.data.requestId,
     p_payment_method: parsed.data.paymentMethod,
-    p_start_date: parsed.data.startDate ?? null,
+    p_start_date: parsed.data.startDate,
   })
   if (error || !plan) {
     return { status: "error", message: "approve_failed" }

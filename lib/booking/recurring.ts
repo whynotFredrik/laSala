@@ -9,15 +9,6 @@ import type { createServiceClient } from "@/lib/supabase/service"
 type ServiceClient = ReturnType<typeof createServiceClient>
 
 /**
- * Whether an automatic (recurring) booking may draw on the member's two
- * grace bookings once the plan is exhausted/expired and no plan is
- * queued. Mirrors what the member could do by hand on the book page.
- * Domain decision — flip to `false` if the studio wants grace to be
- * member-initiated only.
- */
-export const RECURRING_ALLOW_GRACE = true
-
-/**
  * Why a recurring auto-booking was skipped. Mirrors the exceptions raised
  * by the `book_session_for` Postgres function so UI and notifications can
  * show a translated reason instead of a bare error.
@@ -28,7 +19,6 @@ export type RecurringSkipReason =
   | "noActivePlan"
   | "planExpired"
   | "noSessionsLeft"
-  | "graceExhausted"
   | "notAllowed"
   | "unknown"
 
@@ -37,7 +27,6 @@ export function skipReasonFor(message: string): RecurringSkipReason {
   if (m.includes("already booked")) return "alreadyBooked"
   if (m.includes("session is full")) return "sessionFull"
   if (m.includes("no active plan")) return "noActivePlan"
-  if (m.includes("grace bookings exhausted")) return "graceExhausted"
   if (m.includes("plan expires")) return "planExpired"
   if (m.includes("no sessions remaining")) return "noSessionsLeft"
   if (m.includes("admin only") || m.includes("permission denied")) {
@@ -55,11 +44,10 @@ export type PinOutcome = {
   trainer: string | null
   /**
    * booked   — a new booking was created from the plan
-   * grace    — a new booking was created on the grace budget
    * existing — the member already had a booking on that session
    * skipped  — the Postgres function refused (see `reason`)
    */
-  status: "booked" | "grace" | "existing" | "skipped"
+  status: "booked" | "existing" | "skipped"
   reason?: RecurringSkipReason
   /** Raw Postgres message, for logs. */
   message?: string
@@ -177,10 +165,9 @@ async function bookCandidates(
       outcomes.push({ ...c, status: "existing" })
       continue
     }
-    const { data: booking, error } = await service.rpc("book_session_for", {
+    const { error } = await service.rpc("book_session_for", {
       p_user_id: c.userId,
       p_session_id: c.sessionId,
-      p_allow_grace: RECURRING_ALLOW_GRACE,
     })
     if (error) {
       outcomes.push({
@@ -191,7 +178,7 @@ async function bookCandidates(
       })
       continue
     }
-    outcomes.push({ ...c, status: booking?.is_grace ? "grace" : "booked" })
+    outcomes.push({ ...c, status: "booked" })
   }
   return outcomes
 }
@@ -235,7 +222,7 @@ export function touchedSessionIds(outcomes: PinOutcome[]): string[] {
   return Array.from(
     new Set(
       outcomes
-        .filter((o) => o.status === "booked" || o.status === "grace")
+        .filter((o) => o.status === "booked")
         .map((o) => o.sessionId),
     ),
   )

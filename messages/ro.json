@@ -96,7 +96,6 @@
       "noActivePlan": "nu ai abonament activ",
       "planExpired": "abonamentul expiră înainte de sesiune",
       "noSessionsLeft": "nu mai ai sesiuni pe abonament",
-      "graceExhausted": "sesiunile de grație s-au epuizat — reînnoiește abonamentul",
       "notAllowed": "eroare de sistem",
       "unknown": "eroare necunoscută"
     }
@@ -108,8 +107,8 @@
     "noActivePlan": "Niciun plan activ",
     "planExpired": "Plan expirat",
     "planExpires": "Expiră",
-    "graceTitle": "Sesiuni de grație",
-    "graceBody": "Mai poți rezerva {remaining} sesiuni înainte de reînnoirea abonamentului. Solicită un plan nou cât mai curând.",
+    "needsRenewalTitle": "Abonament epuizat",
+    "needsRenewalBody": "Nu mai poți rezerva până nu reînnoiești. Solicită un plan nou din pagina Planuri.",
     "nextPlanQueued": "Următorul plan ({name}) este pregătit și se activează automat când cel curent se termină.",
     "renewalBannerTitle": "Mai ai {remaining} sesiuni",
     "renewalBannerBody": "Solicită următorul abonament acum ca să-ți păstrezi ritmul. Se activează automat când cel curent se termină.",

@@ -25,6 +25,7 @@ export type SummaryLine = {
   /** HH:mm in studio time. */
   time: string
   trainer: string | null
+  /** Legacy grace booking (feature removed Aug 2026; old rows may remain). */
   grace: boolean
 }
 
@@ -74,7 +75,7 @@ export function buildWeeklySummary(input: {
       dayKey: dayKeyFor(o.startAt),
       time: timeFor(o.startAt),
       trainer: o.trainer,
-      grace: o.status === "grace",
+      grace: false,
     })
   }
 

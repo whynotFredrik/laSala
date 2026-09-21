@@ -61,8 +61,7 @@ export async function addRecurringAction(input: {
   revalidatePath("/admin/sessions")
   return {
     status: "ok",
-    booked: outcomes.filter((o) => o.status === "booked" || o.status === "grace")
-      .length,
+    booked: outcomes.filter((o) => o.status === "booked").length,
     skipped: outcomes.filter((o) => o.status === "skipped").length,
   }
 }

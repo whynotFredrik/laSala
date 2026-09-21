@@ -13,9 +13,6 @@ describe("skipReasonFor", () => {
     expect(skipReasonFor("No sessions remaining on plan")).toBe(
       "noSessionsLeft",
     )
-    expect(
-      skipReasonFor("Grace bookings exhausted, please renew plan"),
-    ).toBe("graceExhausted")
     expect(skipReasonFor("Admin only")).toBe("notAllowed")
     expect(skipReasonFor("permission denied for function")).toBe("notAllowed")
     expect(skipReasonFor("something else entirely")).toBe("unknown")

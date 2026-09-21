@@ -37,11 +37,9 @@ export async function PlanCard({
   const remaining = Math.max(plan.sessions_total - plan.sessions_used, 0)
   const expired = new Date(plan.end_date) < new Date()
   const exhausted = remaining === 0
-  // When the regular plan can't cover the next session (exhausted OR expired),
-  // grace bookings kick in — unless a queued plan takes over instead.
-  const onGrace = (expired || exhausted) && !queued
-  const graceUsed = plan.grace_used ?? 0
-  const graceRemaining = Math.max(2 - graceUsed, 0)
+  // Nothing left on this plan and nothing queued: the member has to renew
+  // before the next booking.
+  const needsRenewal = (expired || exhausted) && !queued
 
   return (
     <Card>
@@ -69,10 +67,10 @@ export async function PlanCard({
             {t("nextPlanQueued", { name: queued.plan_tiers?.name_ro ?? "" })}
           </p>
         ) : null}
-        {onGrace ? (
+        {needsRenewal ? (
           <div className="mt-3 rounded border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
-            <p className="font-medium">{t("graceTitle")}</p>
-            <p>{t("graceBody", { remaining: graceRemaining })}</p>
+            <p className="font-medium">{t("needsRenewalTitle")}</p>
+            <p>{t("needsRenewalBody")}</p>
           </div>
         ) : null}
       </CardContent>

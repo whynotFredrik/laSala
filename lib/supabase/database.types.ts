@@ -632,45 +632,51 @@ export type Database = {
         Row: {
           activated_at: string | null
           created_at: string
+          discount_ron: number
           end_date: string
-          grace_used: number
           id: string
           is_active: boolean
           payment_method: Database["public"]["Enums"]["payment_method"] | null
+          price_paid_ron: number | null
           sessions_total: number
           sessions_used: number
           start_date: string
           status: string
+          streak_month: number
           tier_id: string
           user_id: string
         }
         Insert: {
           activated_at?: string | null
           created_at?: string
+          discount_ron?: number
           end_date: string
-          grace_used?: number
           id?: string
           is_active?: boolean
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          price_paid_ron?: number | null
           sessions_total: number
           sessions_used?: number
           start_date: string
           status?: string
+          streak_month?: number
           tier_id: string
           user_id: string
         }
         Update: {
           activated_at?: string | null
           created_at?: string
+          discount_ron?: number
           end_date?: string
-          grace_used?: number
           id?: string
           is_active?: boolean
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          price_paid_ron?: number | null
           sessions_total?: number
           sessions_used?: number
           start_date?: string
           status?: string
+          streak_month?: number
           tier_id?: string
           user_id?: string
         }
@@ -699,6 +705,7 @@ export type Database = {
           full_name: string | null
           gdpr_consented_at: string | null
           gdpr_version: string | null
+          health_consented_at: string | null
           id: string
           locale: string
           phone: string | null
@@ -717,6 +724,7 @@ export type Database = {
           full_name?: string | null
           gdpr_consented_at?: string | null
           gdpr_version?: string | null
+          health_consented_at?: string | null
           id: string
           locale?: string
           phone?: string | null
@@ -735,6 +743,7 @@ export type Database = {
           full_name?: string | null
           gdpr_consented_at?: string | null
           gdpr_version?: string | null
+          health_consented_at?: string | null
           id?: string
           locale?: string
           phone?: string | null
@@ -983,19 +992,21 @@ export type Database = {
     }
     Functions: {
       activate_due_queued_plans: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           activated_at: string | null
           created_at: string
+          discount_ron: number
           end_date: string
-          grace_used: number
           id: string
           is_active: boolean
           payment_method: Database["public"]["Enums"]["payment_method"] | null
+          price_paid_ron: number | null
           sessions_total: number
           sessions_used: number
           start_date: string
           status: string
+          streak_month: number
           tier_id: string
           user_id: string
         }[]
@@ -1007,19 +1018,53 @@ export type Database = {
         }
       }
       activate_queued_plan: {
-        Args: { p_activation_date?: string | null; p_plan_id: string }
+        Args: { p_activation_date?: string; p_plan_id: string }
         Returns: {
           activated_at: string | null
           created_at: string
+          discount_ron: number
           end_date: string
-          grace_used: number
           id: string
           is_active: boolean
           payment_method: Database["public"]["Enums"]["payment_method"] | null
+          price_paid_ron: number | null
           sessions_total: number
           sessions_used: number
           start_date: string
           status: string
+          streak_month: number
+          tier_id: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "plans"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      admin_grant_plan: {
+        Args: {
+          p_sessions_remaining?: number
+          p_start_date?: string
+          p_streak_month?: number
+          p_tier_id: string
+          p_user_id: string
+        }
+        Returns: {
+          activated_at: string | null
+          created_at: string
+          discount_ron: number
+          end_date: string
+          id: string
+          is_active: boolean
+          payment_method: Database["public"]["Enums"]["payment_method"] | null
+          price_paid_ron: number | null
+          sessions_total: number
+          sessions_used: number
+          start_date: string
+          status: string
+          streak_month: number
           tier_id: string
           user_id: string
         }
@@ -1034,20 +1079,22 @@ export type Database = {
         Args: {
           p_payment_method: Database["public"]["Enums"]["payment_method"]
           p_request_id: string
-          p_start_date?: string | null
+          p_start_date?: string
         }
         Returns: {
           activated_at: string | null
           created_at: string
+          discount_ron: number
           end_date: string
-          grace_used: number
           id: string
           is_active: boolean
           payment_method: Database["public"]["Enums"]["payment_method"] | null
+          price_paid_ron: number | null
           sessions_total: number
           sessions_used: number
           start_date: string
           status: string
+          streak_month: number
           tier_id: string
           user_id: string
         }
@@ -1081,11 +1128,7 @@ export type Database = {
         }
       }
       book_session_for: {
-        Args: {
-          p_allow_grace?: boolean
-          p_session_id: string
-          p_user_id: string
-        }
+        Args: { p_session_id: string; p_user_id: string }
         Returns: {
           booked_at: string
           cancelled_at: string | null
@@ -1146,34 +1189,6 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      resolve_plan_for_booking: {
-        Args: { p_session_date: string; p_user_id: string }
-        Returns: {
-          activated_at: string | null
-          created_at: string
-          end_date: string
-          grace_used: number
-          id: string
-          is_active: boolean
-          payment_method: Database["public"]["Enums"]["payment_method"] | null
-          sessions_total: number
-          sessions_used: number
-          start_date: string
-          status: string
-          tier_id: string
-          user_id: string
-        }
-        SetofOptions: {
-          from: "*"
-          to: "plans"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
-      studio_today: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
       is_admin: { Args: never; Returns: boolean }
       reschedule_booking: {
         Args: { p_booking_id: string; p_new_session_id: string }
@@ -1197,6 +1212,34 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      resolve_plan_for_booking: {
+        Args: { p_session_date: string; p_user_id: string }
+        Returns: {
+          activated_at: string | null
+          created_at: string
+          discount_ron: number
+          end_date: string
+          id: string
+          is_active: boolean
+          payment_method: Database["public"]["Enums"]["payment_method"] | null
+          price_paid_ron: number | null
+          sessions_total: number
+          sessions_used: number
+          start_date: string
+          status: string
+          streak_month: number
+          tier_id: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "plans"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      streak_discount_ron: { Args: { p_streak_month: number }; Returns: number }
+      studio_today: { Args: never; Returns: string }
       weekly_change_count: { Args: { p_user_id: string }; Returns: number }
     }
     Enums: {
@@ -1219,12 +1262,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1248,11 +1291,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1273,11 +1316,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1298,11 +1341,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1315,11 +1358,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

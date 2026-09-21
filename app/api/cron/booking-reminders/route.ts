@@ -27,9 +27,7 @@ const REMINDER_OFFSETS = [3, 1] as const
  * We compare on calendar dates, not 24h windows, to avoid drift across
  * DST transitions and to keep the "today + 3" arithmetic intuitive for
  * the studio owner.
- *
- * Members with a queued plan are skipped — for them it is not the last
- * session, the next plan takes over automatically.
+
  */
 export async function GET(request: NextRequest) {
   const auth = request.headers.get("authorization")
@@ -54,18 +52,11 @@ export async function GET(request: NextRequest) {
     )
     .eq("status", "active")
 
-  const { data: queuedRows } = await service
-    .from("plans")
-    .select("user_id")
-    .eq("status", "queued")
-  const hasQueued = new Set((queuedRows ?? []).map((q) => q.user_id))
-
   let sent = 0
 
   for (const plan of plans ?? []) {
     if (plan.sessions_used < plan.sessions_total) continue // still has slots
     if (!plan.profiles) continue
-    if (hasQueued.has(plan.user_id)) continue
 
     // Latest upcoming booking for this user.
     const { data: latest } = await service

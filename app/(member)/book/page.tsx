@@ -15,7 +15,7 @@ import { formatStudio } from "@/lib/booking/format"
 import { nextSevenDays, isUnlocked, studioDateISO } from "@/lib/booking/rules"
 import { requireUser } from "@/lib/auth/get-user"
 import { trainersForSex } from "@/lib/constants"
-import { getMemberPlans } from "@/lib/plans/active"
+import { getActivePlan } from "@/lib/plans/active"
 import { isPlanUsable } from "@/lib/plans/rules"
 import { createClient } from "@/lib/supabase/server"
 import type { Database } from "@/lib/supabase/database.types"
@@ -36,15 +36,14 @@ export default async function BookPage() {
   const firstDay = days[0]!
   const lastDay = days[days.length - 1]!
 
-  // Can the member actually book? No plan, or an exhausted/expired one
-  // with nothing queued behind it → say so up front, with the way out.
-  const { active: plan, queued } = await getMemberPlans(supabase, user.id)
-  const planProblem: "none" | "exhausted" | null =
-    !plan && !queued
-      ? "none"
-      : plan && !queued && !isPlanUsable(plan, studioDateISO())
-        ? "exhausted"
-        : null
+  // Can the member actually book? No plan, or an exhausted/expired one →
+  // say so up front, with the way out.
+  const plan = await getActivePlan(supabase, user.id)
+  const planProblem: "none" | "exhausted" | null = !plan
+    ? "none"
+    : !isPlanUsable(plan, studioDateISO())
+      ? "exhausted"
+      : null
 
   // Pull every session in the 7-day window, filtered by the trainers
   // that serve the member's sex (men → Eugen, women → Marina + Ana).

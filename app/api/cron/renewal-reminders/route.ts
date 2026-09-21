@@ -17,8 +17,9 @@ export const runtime = "nodejs"
  *
  * Rule (studio): plans with 12+ sessions get the first nudge 3 sessions
  * before the end, 8-session plans 2 sessions before, and one more each
- * time the remaining count drops (see `renewalThreshold`). A member who
- * already has a queued plan or a pending request is left alone.
+ * time the remaining count drops (see `renewalThreshold`). A member with a
+ * pending request is left alone; an approved renewal merges into the plan
+ * and lifts the count above the threshold by itself.
  *
  * "Once per remaining value, at most once a day" falls out of the
  * notifications dedupe key `renewal:<plan_id>:<remaining>` combined with
@@ -44,18 +45,12 @@ export async function GET(request: NextRequest) {
   if (due.length === 0) return NextResponse.json({ ok: true, sent: 0 })
 
   const userIds = due.map((p) => p.user_id)
-  const [{ data: queued }, { data: pending }] = await Promise.all([
-    service.from("plans").select("user_id").in("user_id", userIds).eq("status", "queued"),
-    service
-      .from("plan_requests")
-      .select("user_id")
-      .in("user_id", userIds)
-      .eq("status", "pending"),
-  ])
-  const alreadyRenewing = new Set([
-    ...(queued ?? []).map((r) => r.user_id),
-    ...(pending ?? []).map((r) => r.user_id),
-  ])
+  const { data: pending } = await service
+    .from("plan_requests")
+    .select("user_id")
+    .in("user_id", userIds)
+    .eq("status", "pending")
+  const alreadyRenewing = new Set((pending ?? []).map((r) => r.user_id))
 
   const copy = notificationCopy()
   let sent = 0

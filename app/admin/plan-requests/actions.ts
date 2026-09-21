@@ -10,7 +10,6 @@ import { bookPinsForUser, touchedSessionIds } from "@/lib/booking/recurring"
 import { sendEmail } from "@/lib/email/send"
 import { scheduleCalendarSync } from "@/lib/google/schedule-sync"
 import { notificationCopy, notify } from "@/lib/notifications/notify"
-import { getActivePlan } from "@/lib/plans/active"
 import { planActivatedDedupeKey } from "@/lib/plans/rules"
 import { createClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/service"
@@ -21,8 +20,8 @@ const approveSchema = z.object({
   // POS or cash. Historical records in the DB may still hold
   // 'bank_transfer'; the schema rejects it for new approvals.
   paymentMethod: z.enum(["pos", "cash"]),
-  // Only meaningful when the plan activates immediately; ignored (queued)
-  // when the member still has a usable plan.
+  // Only used when the member has no plan within its end_date (fresh
+  // start); ignored on an on-time renewal, which merges into today.
   startDate: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -35,7 +34,7 @@ const rejectSchema = z.object({
 })
 
 export type PlanRequestAdminResult =
-  | { status: "ok"; outcome?: "queued" | "active" }
+  | { status: "ok" }
   | { status: "error"; message: string }
 
 /**
@@ -68,11 +67,12 @@ async function loadRequestContext(requestId: string) {
 }
 
 /**
- * Wraps the Postgres `approve_plan_request` function. If the member still
- * has a usable plan the new one is QUEUED (activates by itself when the
- * current one runs out); otherwise it is activated right away and the
- * member's recurring pins are booked immediately. Either way the request
- * flips to 'approved' and the member gets an in-app notification + email.
+ * Wraps the Postgres `approve_plan_request` function. An on-time renewal
+ * (approved no later than the current plan's end_date) starts right away
+ * with the unused sessions added and the validity extended from the old
+ * end_date; otherwise the plan starts fresh on `startDate`. Then the
+ * member's recurring pins are booked immediately and the member gets an
+ * in-app notification + email.
  */
 export async function approvePlanRequestAction(input: {
   requestId: string
@@ -97,69 +97,38 @@ export async function approvePlanRequestAction(input: {
     return { status: "error", message: "approve_failed" }
   }
 
-  const outcome = plan.status === "queued" ? "queued" : "active"
-
   if (ctx) {
     const copy = notificationCopy()
-    if (outcome === "queued") {
-      const service = createServiceClient()
-      const current = await getActivePlan(service, ctx.userId)
-      const currentEndDate = current
-        ? format(new Date(current.end_date), "d MMMM yyyy", { locale: ro })
-        : "—"
-      await notify({
-        userId: ctx.userId,
-        type: "plan_queued",
-        title: copy("planQueuedTitle"),
-        body: copy("planQueuedBody", {
+    const endDate = format(new Date(plan.end_date), "d MMMM yyyy", {
+      locale: ro,
+    })
+    await notify({
+      userId: ctx.userId,
+      type: "plan_activated",
+      title: copy("planActivatedTitle", { planName: ctx.planName }),
+      body: copy("planActivatedBody", {
+        sessionsTotal: plan.sessions_total,
+        endDate,
+      }),
+      data: { plan_id: plan.id },
+      dedupeKey: planActivatedDedupeKey(plan.id),
+      email: {
+        to: ctx.email,
+        template: "planActivated",
+        props: {
+          name: ctx.name,
           planName: ctx.planName,
           sessionsTotal: plan.sessions_total,
-          currentEndDate,
-        }),
-        data: { plan_id: plan.id },
-        email: {
-          to: ctx.email,
-          template: "planQueued",
-          props: {
-            name: ctx.name,
-            planName: ctx.planName,
-            sessionsTotal: plan.sessions_total,
-            currentEndDate,
-          },
-        },
-      })
-    } else {
-      const endDate = format(new Date(plan.end_date), "d MMMM yyyy", {
-        locale: ro,
-      })
-      await notify({
-        userId: ctx.userId,
-        type: "plan_activated",
-        title: copy("planActivatedTitle", { planName: ctx.planName }),
-        body: copy("planActivatedBody", {
-          sessionsTotal: plan.sessions_total,
           endDate,
-        }),
-        data: { plan_id: plan.id },
-        dedupeKey: planActivatedDedupeKey(plan.id),
-        email: {
-          to: ctx.email,
-          template: "planActivated",
-          props: {
-            name: ctx.name,
-            planName: ctx.planName,
-            sessionsTotal: plan.sessions_total,
-            endDate,
-          },
         },
-      })
+      },
+    })
 
-      // Recurring pins that were skipped for lack of a plan get their
-      // bookings now instead of at the next daily sync.
-      const service = createServiceClient()
-      const outcomes = await bookPinsForUser(service, ctx.userId)
-      scheduleCalendarSync(touchedSessionIds(outcomes))
-    }
+    // Recurring pins that were skipped for lack of sessions get their
+    // bookings now instead of at the next daily sync.
+    const service = createServiceClient()
+    const outcomes = await bookPinsForUser(service, ctx.userId)
+    scheduleCalendarSync(touchedSessionIds(outcomes))
   }
 
   revalidatePath("/admin/plan-requests")
@@ -167,7 +136,7 @@ export async function approvePlanRequestAction(input: {
   revalidatePath("/admin/sessions")
   revalidatePath("/home")
   revalidatePath("/plans")
-  return { status: "ok", outcome }
+  return { status: "ok" }
 }
 
 export async function rejectPlanRequestAction(input: {

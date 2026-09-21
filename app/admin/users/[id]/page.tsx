@@ -37,7 +37,6 @@ export default async function AdminUserDetailPage({
     { data: profile },
     { data: tiers },
     { data: activePlan },
-    { data: queuedPlan },
     { data: dietary },
     { data: recentBookings },
     { data: pendingRequests },
@@ -56,12 +55,6 @@ export default async function AdminUserDetailPage({
       .select("*, plan_tiers(name_ro)")
       .eq("user_id", id)
       .eq("status", "active")
-      .maybeSingle(),
-    supabase
-      .from("plans")
-      .select("id, sessions_total, plan_tiers(name_ro)")
-      .eq("user_id", id)
-      .eq("status", "queued")
       .maybeSingle(),
     supabase
       .from("dietary_questionnaires")
@@ -245,14 +238,6 @@ export default async function AdminUserDetailPage({
               hasActivePlan={!!activePlan}
             />
           </div>
-          {queuedPlan ? (
-            <p className="mt-3 rounded border bg-muted/40 p-2 text-sm">
-              {t("queuedPlan", {
-                name: queuedPlan.plan_tiers?.name_ro ?? queuedPlan.id,
-                sessions: queuedPlan.sessions_total,
-              })}
-            </p>
-          ) : null}
         </CardContent>
       </Card>
 

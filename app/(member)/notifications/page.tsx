@@ -19,7 +19,6 @@ function linkFor(type: string, data: unknown): string | null {
     case "renewal_reminder":
     case "expiration_warning":
       return d.tier_id ? `/plans?tier=${d.tier_id}` : "/plans"
-    case "plan_queued":
     case "plan_activated":
       return "/home"
     case "weekly_summary":

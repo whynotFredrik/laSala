@@ -1,7 +1,7 @@
 /**
  * Pure plan helpers shared by pages, server actions and cron routes.
- * The authoritative checks live in supabase/migrations/0022_queued_plans.sql
- * (`resolve_plan_for_booking`, `approve_plan_request`) — keep in sync.
+ * The authoritative checks live in supabase/migrations/0027_renewal_merges_sessions.sql
+ * (`approve_plan_request`) — keep in sync.
  */
 
 export type PlanLike = {

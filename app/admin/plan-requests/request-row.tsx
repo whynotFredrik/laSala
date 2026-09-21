@@ -33,10 +33,11 @@ export function RequestRow({
     tier: { name_ro: string; price_ron: number } | null
     notes: string | null
     preferred_payment_method: string | null
-    /** Member still has a usable plan → approval queues the new one. */
-    willQueue: boolean
-    /** A queued plan already exists → approval would be refused. */
-    hasQueued: boolean
+    /**
+     * On-time renewal: approval merges — unused sessions carry over and the
+     * plan runs until `newEndDate`. Null → fresh start on the chosen date.
+     */
+    merge: { remaining: number; newEndDate: string } | null
     streak: { month: number; discount_ron: number; price_due_ron: number }
   }
 }) {
@@ -60,10 +61,10 @@ export function RequestRow({
       const res = await approvePlanRequestAction({
         requestId: request.id,
         paymentMethod,
-        startDate: request.willQueue ? undefined : startDate,
+        startDate: request.merge ? undefined : startDate,
       })
       if (res.status === "error") toast.error(t(res.message as "approve_failed"))
-      else toast.success(t(res.outcome === "queued" ? "approvedQueued" : "approved"))
+      else toast.success(t("approved"))
     })
 
   const reject = () =>
@@ -124,14 +125,18 @@ export function RequestRow({
         <p className="text-sm text-muted-foreground">{request.notes}</p>
       ) : null}
       <p className="text-xs text-muted-foreground">
-        {request.willQueue ? t("willQueue") : t("willActivate")}
+        {request.merge
+          ? t("willMerge", {
+              remaining: request.merge.remaining,
+              date: format(new Date(request.merge.newEndDate), "d MMM yyyy", {
+                locale: ro,
+              }),
+            })
+          : t("willActivate")}
       </p>
-      {request.hasQueued ? (
-        <p className="text-sm text-destructive">{t("alreadyScheduled")}</p>
-      ) : null}
       <div
         className={
-          request.willQueue
+          request.merge
             ? "grid gap-2 sm:grid-cols-[1fr_auto_auto]"
             : "grid gap-2 sm:grid-cols-[1fr_1fr_auto_auto]"
         }
@@ -148,18 +153,14 @@ export function RequestRow({
             <SelectItem value="cash">{t("cash")}</SelectItem>
           </SelectContent>
         </Select>
-        {request.willQueue ? null : (
+        {request.merge ? null : (
           <Input
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
           />
         )}
-        <Button
-          type="button"
-          onClick={approve}
-          disabled={pending || request.hasQueued}
-        >
+        <Button type="button" onClick={approve} disabled={pending}>
           {t("approve")}
         </Button>
         <Button

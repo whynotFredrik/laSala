@@ -71,12 +71,6 @@ export type TemplatePropsMap = {
     remaining: number
     renewUrl: string
   }
-  planQueued: {
-    name: string
-    planName: string
-    sessionsTotal: number
-    currentEndDate: string
-  }
   planActivated: {
     name: string
     planName: string
@@ -216,21 +210,10 @@ export const TEMPLATES: {
     body: `
       <p>Salut, ${escape(p.name)}!</p>
       <p>Mai ai <strong>${escape(p.remaining)} sesiuni</strong> în <strong>${escape(p.planName)}</strong>.</p>
-      <p>Solicită acum următorul abonament: se activează automat când cel curent se termină, iar rezervările tale recurente continuă fără pauză.</p>
+      <p>Solicită acum următorul abonament: sesiunile rămase se adaugă la cel nou, valabilitatea se prelungește de la data de expirare curentă, iar rezervările tale recurente continuă fără pauză.</p>
       <p><a href="${escape(p.renewUrl)}">Reînnoiește planul</a></p>
     `,
     sender: "bookings",
-  }),
-
-  planQueued: (p) => ({
-    subject: `Următorul abonament este pregătit — ${p.planName}`,
-    heading: "Următorul tău abonament este pregătit",
-    body: `
-      <p>Salut, ${escape(p.name)}!</p>
-      <p>Abonamentul <strong>${escape(p.planName)}</strong> (${escape(p.sessionsTotal)} sesiuni) a fost aprobat și așteaptă.</p>
-      <p>Se activează automat când abonamentul curent se termină — la epuizarea sesiunilor sau cel târziu pe <strong>${escape(p.currentEndDate)}</strong>. Nu trebuie să faci nimic.</p>
-    `,
-    sender: "payments",
   }),
 
   planActivated: (p) => ({
@@ -238,7 +221,7 @@ export const TEMPLATES: {
     heading: "Noul tău abonament este activ!",
     body: `
       <p>Salut, ${escape(p.name)}!</p>
-      <p>Abonamentul <strong>${escape(p.planName)}</strong> a intrat în vigoare.</p>
+      <p>Abonamentul <strong>${escape(p.planName)}</strong> a intrat în vigoare. Sesiunile rămase din abonamentul anterior au fost adăugate.</p>
       <p><strong>Sesiuni disponibile:</strong> ${escape(p.sessionsTotal)}</p>
       <p><strong>Valabil până la:</strong> ${escape(p.endDate)}</p>
       <p>Rezervările tale recurente au fost reluate automat.</p>

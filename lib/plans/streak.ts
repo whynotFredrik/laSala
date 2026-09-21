@@ -1,12 +1,14 @@
 /**
  * Pure helpers for the consistency streak ("Streak de consecvență").
- * Mirrors the rules encoded in supabase/migrations/0025_renewal_streak.sql (discount table) and 0023_reconcile_live_schema.sql (approve_plan_request) —
- * keep the two in sync.
+ * Mirrors the rules encoded in supabase/migrations/0025_renewal_streak.sql
+ * (discount table) and 0028_streak_monthly_only.sql (approve_plan_request)
+ * — keep the two in sync.
  *
  * The rule: payment (admin approval) of the next plan no later than the
  * current plan's end_date — as a Bucharest calendar date — continues the
- * streak. Monthly tiers get a flat RON discount by streak month; 6-month
- * promo tiers advance the counter but never receive the discount.
+ * streak, and only from a monthly plan to a monthly plan. Promotions (the
+ * 6-month packages) never hold a streak: they get no discount, and the
+ * first monthly plan after one starts at month 1.
  */
 
 import { toZonedTime } from "date-fns-tz"
@@ -49,15 +51,53 @@ export function isRenewalOnTime(
   return today <= planEndDate
 }
 
+/** Only month-to-month tiers take part in the streak. */
+export function isStreakTier(category: string | null | undefined): boolean {
+  return category === "monthly"
+}
+
+/** What `nextStreakMonth` needs to know about the member's current plan. */
+export type StreakPlanRef = {
+  streak_month: number
+  end_date: string
+  tier_category: string | null
+}
+
+/** Build a `StreakPlanRef` from a plan row joined with its tier. */
+export function toStreakRef(
+  plan:
+    | {
+        streak_month: number
+        end_date: string
+        plan_tiers: { category: string } | null
+      }
+    | null,
+): StreakPlanRef | null {
+  if (!plan) return null
+  return {
+    streak_month: plan.streak_month,
+    end_date: plan.end_date,
+    tier_category: plan.plan_tiers?.category ?? null,
+  }
+}
+
 /**
  * The streak month a renewal approved right now would get, given the
- * member's current active plan (or null when they have none).
+ * member's current active plan (or null when they have none) and the
+ * category of the tier being bought. Anything but monthly → monthly, on
+ * time, is month 1.
  */
 export function nextStreakMonth(
-  activePlan: { streak_month: number; end_date: string } | null,
+  activePlan: StreakPlanRef | null,
+  newTierCategory: string | null | undefined,
   now: Date = new Date(),
 ): number {
-  if (activePlan && isRenewalOnTime(activePlan.end_date, now)) {
+  if (!isStreakTier(newTierCategory)) return 1
+  if (
+    activePlan &&
+    isStreakTier(activePlan.tier_category) &&
+    isRenewalOnTime(activePlan.end_date, now)
+  ) {
     return activePlan.streak_month + 1
   }
   return 1

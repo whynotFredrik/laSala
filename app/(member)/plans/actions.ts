@@ -8,7 +8,11 @@ import { sendEmail } from "@/lib/email/send"
 import { notifyAdmins } from "@/lib/notifications/admins"
 import { notificationCopy } from "@/lib/notifications/notify"
 import { getActivePlan } from "@/lib/plans/active"
-import { nextStreakMonth, streakDiscountRon } from "@/lib/plans/streak"
+import {
+  nextStreakMonth,
+  streakDiscountRon,
+  toStreakRef,
+} from "@/lib/plans/streak"
 import { createClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/service"
 
@@ -88,10 +92,9 @@ export async function requestPlanAction(
     // Quote the streak-discounted price the member will pay if they settle
     // before their current plan expires. The authoritative amount is decided
     // at approval time in `approve_plan_request`.
-    const discount =
-      tier.category === "monthly"
-        ? streakDiscountRon(nextStreakMonth(activePlan))
-        : 0
+    const discount = streakDiscountRon(
+      nextStreakMonth(toStreakRef(activePlan), tier.category),
+    )
     const price = Math.max(basePrice - discount, 0)
     const recipientName = profile.full_name ?? profile.email
 

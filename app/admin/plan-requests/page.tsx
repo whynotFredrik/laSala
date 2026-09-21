@@ -13,6 +13,7 @@ import {
   isRenewalOnTime,
   nextStreakMonth,
   streakDiscountRon,
+  toStreakRef,
 } from "@/lib/plans/streak"
 import { createClient } from "@/lib/supabase/server"
 
@@ -42,7 +43,9 @@ export default async function PlanRequestsAdminPage() {
     requesterIds.length > 0
       ? await supabase
           .from("plans")
-          .select("user_id, end_date, sessions_used, sessions_total, streak_month")
+          .select(
+            "user_id, end_date, sessions_used, sessions_total, streak_month, plan_tiers(category)",
+          )
           .in("user_id", requesterIds)
           .eq("status", "active")
       : { data: [] }
@@ -62,9 +65,11 @@ export default async function PlanRequestsAdminPage() {
     // `approve_plan_request` (0023).
     const activePlan = activeByUser.get(r.user_id) ?? null
     const onTime = !!activePlan && isRenewalOnTime(activePlan.end_date)
-    const streakMonth = nextStreakMonth(activePlan)
-    const discount =
-      r.plan_tiers?.category === "monthly" ? streakDiscountRon(streakMonth) : 0
+    const streakMonth = nextStreakMonth(
+      toStreakRef(activePlan),
+      r.plan_tiers?.category,
+    )
+    const discount = streakDiscountRon(streakMonth)
     const merge =
       onTime && activePlan && r.plan_tiers
         ? {

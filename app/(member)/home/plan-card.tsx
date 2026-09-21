@@ -15,8 +15,10 @@ import { buttonVariants } from "@/components/ui/button"
 import type { PlanWithTier } from "@/lib/plans/active"
 import {
   isRenewalOnTime,
+  isStreakTier,
   nextStreakMonth,
   streakDiscountRon,
+  toStreakRef,
 } from "@/lib/plans/streak"
 
 export async function PlanCard({ plan }: { plan: PlanWithTier | null }) {
@@ -45,10 +47,10 @@ export async function PlanCard({ plan }: { plan: PlanWithTier | null }) {
 
   // Consistency streak: where the member stands and what paying the next
   // plan on time gets them. Discount applies to monthly tiers only.
+  const onPromo = !isStreakTier(plan.plan_tiers?.category)
   const onTime = isRenewalOnTime(plan.end_date)
-  const nextStreak = nextStreakMonth(plan)
-  const nextDiscount =
-    plan.plan_tiers?.category === "monthly" ? streakDiscountRon(nextStreak) : 0
+  const nextStreak = nextStreakMonth(toStreakRef(plan), "monthly")
+  const nextDiscount = streakDiscountRon(nextStreak)
   const deadline = format(new Date(plan.end_date), "d MMMM", { locale: ro })
 
   return (
@@ -74,10 +76,14 @@ export async function PlanCard({ plan }: { plan: PlanWithTier | null }) {
         </p>
         <div className="mt-3 space-y-0.5 rounded border bg-muted/40 p-2 text-xs">
           <p className="font-medium">
-            {t("streakTitle", { month: plan.streak_month })}
+            {onPromo
+              ? t("streakPromoTitle")
+              : t("streakTitle", { month: plan.streak_month })}
           </p>
           <p className="text-muted-foreground">
-            {!onTime
+            {onPromo
+              ? t("streakPromoBody")
+              : !onTime
               ? t("streakLost")
               : nextDiscount > 0
                 ? t("streakNextDiscount", {

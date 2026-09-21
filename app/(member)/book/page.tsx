@@ -1,4 +1,5 @@
 import { isAfter, parseISO } from "date-fns"
+import Link from "next/link"
 import { getTranslations } from "next-intl/server"
 
 import {
@@ -8,11 +9,14 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { buttonVariants } from "@/components/ui/button"
 import { BookButton } from "@/components/member/book-button"
 import { formatStudio } from "@/lib/booking/format"
-import { nextSevenDays, isUnlocked } from "@/lib/booking/rules"
+import { nextSevenDays, isUnlocked, studioDateISO } from "@/lib/booking/rules"
 import { requireUser } from "@/lib/auth/get-user"
 import { trainersForSex } from "@/lib/constants"
+import { getMemberPlans } from "@/lib/plans/active"
+import { isPlanUsable } from "@/lib/plans/rules"
 import { createClient } from "@/lib/supabase/server"
 import type { Database } from "@/lib/supabase/database.types"
 
@@ -31,6 +35,16 @@ export default async function BookPage() {
   const days = nextSevenDays()
   const firstDay = days[0]!
   const lastDay = days[days.length - 1]!
+
+  // Can the member actually book? No plan, or an exhausted/expired one
+  // with nothing queued behind it → say so up front, with the way out.
+  const { active: plan, queued } = await getMemberPlans(supabase, user.id)
+  const planProblem: "none" | "exhausted" | null =
+    !plan && !queued
+      ? "none"
+      : plan && !queued && !isPlanUsable(plan, studioDateISO())
+        ? "exhausted"
+        : null
 
   // Pull every session in the 7-day window, filtered by the trainers
   // that serve the member's sex (men → Eugen, women → Marina + Ana).
@@ -79,6 +93,26 @@ export default async function BookPage() {
           {t("availableSessions")}
         </h1>
       </header>
+
+      {planProblem ? (
+        <Alert className="border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40">
+          <AlertTitle>
+            {planProblem === "none"
+              ? t("noPlanAlertTitle")
+              : t("planExhaustedAlertTitle")}
+          </AlertTitle>
+          <AlertDescription className="flex flex-col gap-3">
+            <span>
+              {planProblem === "none"
+                ? t("noPlanAlertBody")
+                : t("planExhaustedAlertBody")}
+            </span>
+            <Link href="/plans" className={buttonVariants({ size: "sm" })}>
+              {t("choosePlan")}
+            </Link>
+          </AlertDescription>
+        </Alert>
+      ) : null}
 
       {days.map((day) => {
         const list = byDay.get(day) ?? []

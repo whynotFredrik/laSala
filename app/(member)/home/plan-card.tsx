@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { format } from "date-fns"
 import { ro } from "date-fns/locale"
 import { getTranslations } from "next-intl/server"
@@ -10,7 +11,13 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { buttonVariants } from "@/components/ui/button"
 import type { PlanWithTier } from "@/lib/plans/active"
+import {
+  isRenewalOnTime,
+  nextStreakMonth,
+  streakDiscountRon,
+} from "@/lib/plans/streak"
 
 export async function PlanCard({
   plan,
@@ -25,11 +32,20 @@ export async function PlanCard({
     return (
       <Alert>
         <AlertTitle>{t("noActivePlan")}</AlertTitle>
-        {queued ? (
-          <AlertDescription>
-            {t("nextPlanQueued", { name: queued.plan_tiers?.name_ro ?? "" })}
-          </AlertDescription>
-        ) : null}
+        <AlertDescription className="flex flex-col gap-3">
+          {queued ? (
+            <span>
+              {t("nextPlanQueued", { name: queued.plan_tiers?.name_ro ?? "" })}
+            </span>
+          ) : (
+            <>
+              <span>{t("noActivePlanBody")}</span>
+              <Link href="/plans" className={buttonVariants({ size: "sm" })}>
+                {t("choosePlan")}
+              </Link>
+            </>
+          )}
+        </AlertDescription>
       </Alert>
     )
   }
@@ -40,6 +56,14 @@ export async function PlanCard({
   // Nothing left on this plan and nothing queued: the member has to renew
   // before the next booking.
   const needsRenewal = (expired || exhausted) && !queued
+
+  // Consistency streak: where the member stands and what paying the next
+  // plan on time gets them. Discount applies to monthly tiers only.
+  const onTime = isRenewalOnTime(plan.end_date)
+  const nextStreak = nextStreakMonth(plan)
+  const nextDiscount =
+    plan.plan_tiers?.category === "monthly" ? streakDiscountRon(nextStreak) : 0
+  const deadline = format(new Date(plan.end_date), "d MMMM", { locale: ro })
 
   return (
     <Card>
@@ -62,11 +86,24 @@ export async function PlanCard({
             {format(new Date(plan.end_date), "d MMM yyyy", { locale: ro })}
           </span>
         </p>
-        {plan.streak_month > 1 ? (
-          <p className="text-muted-foreground">
-            {t("streakBadge", { month: plan.streak_month })}
+        <div className="mt-3 space-y-0.5 rounded border bg-muted/40 p-2 text-xs">
+          <p className="font-medium">
+            {t("streakTitle", { month: plan.streak_month })}
           </p>
-        ) : null}
+          <p className="text-muted-foreground">
+            {queued
+              ? t("streakQueued", { month: queued.streak_month })
+              : !onTime
+                ? t("streakLost")
+                : nextDiscount > 0
+                  ? t("streakNextDiscount", {
+                      date: deadline,
+                      month: nextStreak,
+                      discount: nextDiscount,
+                    })
+                  : t("streakNext", { date: deadline, month: nextStreak })}
+          </p>
+        </div>
         {queued ? (
           <p className="mt-3 rounded border bg-muted/40 p-2 text-xs">
             {t("nextPlanQueued", { name: queued.plan_tiers?.name_ro ?? "" })}

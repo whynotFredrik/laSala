@@ -29,20 +29,18 @@ type PaymentMethod = "pos" | "cash"
 
 /**
  * "Request plan" button. A member may request a plan while another one is
- * active (it will be queued on approval); only a pending request or an
- * already-queued plan blocks a new request. `highlight` (from
+ * active (an on-time renewal merges into the current plan on approval);
+ * only a pending request blocks a new one. `highlight` (from
  * `/plans?tier=<id>`, used by renewal reminders) opens the dialog on load.
  */
 export function RequestPlanButton({
   tierId,
   hasPending,
-  hasQueued,
   isRenewal,
   highlight = false,
 }: {
   tierId: string
   hasPending: boolean
-  hasQueued: boolean
   isRenewal: boolean
   highlight?: boolean
 }) {
@@ -53,7 +51,7 @@ export function RequestPlanButton({
   const [notes, setNotes] = useState("")
   const [pending, start] = useTransition()
 
-  const disabled = hasPending || hasQueued
+  const disabled = hasPending
 
   useEffect(() => {
     if (highlight && !disabled) setOpen(true)
@@ -83,13 +81,11 @@ export function RequestPlanButton({
         disabled={disabled}
         onClick={() => setOpen(true)}
       >
-        {hasQueued
-          ? t("alreadyQueued")
-          : hasPending
-            ? t("alreadyPending")
-            : isRenewal
-              ? t("renew")
-              : t("request")}
+        {hasPending
+          ? t("alreadyPending")
+          : isRenewal
+            ? t("renew")
+            : t("request")}
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>

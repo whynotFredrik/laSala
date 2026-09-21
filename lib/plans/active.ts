@@ -35,31 +35,3 @@ export async function getActivePlan(
     .maybeSingle()
   return (data as PlanWithTier | null) ?? null
 }
-
-/**
- * The plan waiting to take over when the current one ends (at most one,
- * `plans_one_queued_per_user`). Its dates are provisional until activation.
- */
-export async function getQueuedPlan(
-  client: Client,
-  userId: string,
-): Promise<PlanWithTier | null> {
-  const { data } = await client
-    .from("plans")
-    .select(PLAN_WITH_TIER)
-    .eq("user_id", userId)
-    .eq("status", "queued")
-    .maybeSingle()
-  return (data as PlanWithTier | null) ?? null
-}
-
-export async function getMemberPlans(
-  client: Client,
-  userId: string,
-): Promise<{ active: PlanWithTier | null; queued: PlanWithTier | null }> {
-  const [active, queued] = await Promise.all([
-    getActivePlan(client, userId),
-    getQueuedPlan(client, userId),
-  ])
-  return { active, queued }
-}

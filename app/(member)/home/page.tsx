@@ -3,7 +3,7 @@ import { getTranslations } from "next-intl/server"
 
 import { buttonVariants } from "@/components/ui/button"
 import { requireUser } from "@/lib/auth/get-user"
-import { getMemberPlans } from "@/lib/plans/active"
+import { getActivePlan } from "@/lib/plans/active"
 import { createClient } from "@/lib/supabase/server"
 
 import { PlanCard } from "./plan-card"
@@ -18,11 +18,11 @@ export default async function HomePage() {
   const supabase = await createClient()
   const t = await getTranslations("home")
 
-  // Active plan (+ the queued one waiting behind it, if any) and whether a
-  // renewal request is already pending — drives the renewal banner.
-  const [{ active: plan, queued }, { data: pendingRequest }] =
+  // Active plan and whether a renewal request is already pending — drives
+  // the renewal banner.
+  const [plan, { data: pendingRequest }] =
     await Promise.all([
-      getMemberPlans(supabase, profile.id),
+      getActivePlan(supabase, profile.id),
       supabase
         .from("plan_requests")
         .select("id")
@@ -57,13 +57,9 @@ export default async function HomePage() {
         </h1>
       </header>
 
-      <RenewalBanner
-        plan={plan}
-        queued={queued}
-        hasPendingRequest={!!pendingRequest}
-      />
+      <RenewalBanner plan={plan} hasPendingRequest={!!pendingRequest} />
 
-      <PlanCard plan={plan} queued={queued} />
+      <PlanCard plan={plan} />
 
       <UpcomingBookings
         bookings={(bookings ?? []) as UpcomingBooking[]}

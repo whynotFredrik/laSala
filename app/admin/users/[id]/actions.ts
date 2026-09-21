@@ -77,8 +77,8 @@ const grantPlanSchema = z.object({
 /**
  * Grant a plan directly — for onboarding members who already train at the
  * studio (no plan request involved). Wraps the `admin_grant_plan` Postgres
- * function, which atomically retires the current active plan (and any queued
- * renewal) and inserts the new one with the chosen tier, remaining sessions,
+ * function, which atomically retires the current active plan and inserts
+ * the new one with the chosen tier, remaining sessions,
  * and streak month ("vechimea").
  */
 export async function grantPlanAction(

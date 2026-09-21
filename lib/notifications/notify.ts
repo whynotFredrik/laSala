@@ -15,6 +15,8 @@ export type NotificationType =
   | "weekly_summary"
   | "pins_booked"
   | "expiration_warning"
+  | "admin_plan_request"
+  | "admin_expiry_digest"
 
 export type NotifyArgs<T extends TemplateId> = {
   userId: string

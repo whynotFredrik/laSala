@@ -66,6 +66,7 @@
   "notifications": {
     "title": "Notificări",
     "subtitle": "Rezervările recurente, abonamentul și reamintirile tale.",
+    "subtitleAdmin": "Cereri noi de abonament și abonamente care expiră curând.",
     "empty": "Nicio notificare încă.",
     "unread": "Necitit",
     "unreadCount": "{count} notificări necitite",
@@ -75,8 +76,15 @@
       "plan_queued": "Vezi planul",
       "plan_activated": "Vezi planul",
       "weekly_summary": "Vezi rezervările",
-      "pins_booked": "Vezi rezervările"
+      "pins_booked": "Vezi rezervările",
+      "admin_plan_request": "Vezi cererile",
+      "admin_expiry_digest": "Vezi membrii"
     },
+    "adminPlanRequestTitle": "Cerere nouă de abonament: {name}",
+    "adminPlanRequestBody": "{name} ({email}) a solicitat {planName} — {price} RON, plată: {paymentMethod}. Aprobă cererea după primirea plății.",
+    "adminExpiryTitle": "{count, plural, one {Un abonament expiră} other {# abonamente expiră}} curând",
+    "adminExpiryIntro": "Membrii anunțați astăzi:",
+    "adminExpiryLine": "{name} — {planName}, expiră pe {endDate} (în {days} zile, {remaining} sesiuni rămase)",
     "planQueuedTitle": "Următorul abonament este pregătit",
     "planQueuedBody": "{planName} ({sessionsTotal} sesiuni) se activează automat când abonamentul curent se termină — la epuizarea sesiunilor sau cel târziu pe {currentEndDate}.",
     "planActivatedTitle": "Abonament activ: {planName}",

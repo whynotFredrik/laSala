@@ -62,6 +62,11 @@ export async function PlanCard({
             {format(new Date(plan.end_date), "d MMM yyyy", { locale: ro })}
           </span>
         </p>
+        {plan.streak_month > 1 ? (
+          <p className="text-muted-foreground">
+            {t("streakBadge", { month: plan.streak_month })}
+          </p>
+        ) : null}
         {queued ? (
           <p className="mt-3 rounded border bg-muted/40 p-2 text-xs">
             {t("nextPlanQueued", { name: queued.plan_tiers?.name_ro ?? "" })}

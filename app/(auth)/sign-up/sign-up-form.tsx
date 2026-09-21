@@ -171,6 +171,17 @@ export function SignUpForm() {
         </span>
       </label>
 
+      <label className="flex items-start gap-2 text-sm">
+        <input
+          id="healthConsent"
+          name="healthConsent"
+          type="checkbox"
+          required
+          className="mt-0.5 size-4"
+        />
+        <span>{t("healthConsent")}</span>
+      </label>
+
       {state.status === "error" ? (
         <Alert variant="destructive">
           <AlertTitle>{tErrors(state.message)}</AlertTitle>

@@ -12,6 +12,11 @@ import {
 } from "@/components/ui/card"
 import { requireUser } from "@/lib/auth/get-user"
 import { getMemberPlans } from "@/lib/plans/active"
+import {
+  isRenewalOnTime,
+  nextStreakMonth,
+  streakDiscountRon,
+} from "@/lib/plans/streak"
 import { createClient } from "@/lib/supabase/server"
 
 import { PayInfoCard } from "./pay-info-card"
@@ -51,6 +56,11 @@ export default async function PlansPage({
   // for the rare case a member's sex is somehow unset (legacy accounts).
   const sex = (profile.sex as "male" | "female" | null) ?? "male"
 
+  // Streak: the month a renewal paid today would land on, and its discount.
+  const onTime = !!active && isRenewalOnTime(active.end_date)
+  const nextStreak = nextStreakMonth(active)
+  const nextDiscount = streakDiscountRon(nextStreak)
+
   return (
     <div className="space-y-6">
       <header>
@@ -77,12 +87,41 @@ export default async function PlansPage({
         </Alert>
       ) : null}
 
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">{t("streakTitle")}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-1 text-sm text-muted-foreground">
+          <p>{t("streakIntro")}</p>
+          {queued ? (
+            <p className="font-medium text-foreground">
+              {t("streakQueued", { month: queued.streak_month })}
+            </p>
+          ) : onTime && active ? (
+            <p className="font-medium text-foreground">
+              {t("streakNext", {
+                month: nextStreak,
+                date: format(new Date(active.end_date), "d MMMM yyyy", {
+                  locale: ro,
+                }),
+                discount: nextDiscount,
+              })}
+            </p>
+          ) : null}
+        </CardContent>
+      </Card>
+
       <div className="grid gap-3 sm:grid-cols-2">
         {(tiers ?? []).map((tier) => {
           const totalSessions = tier.sessions_per_month * tier.duration_months
           const price = Number(
             sex === "female" ? tier.price_female_ron : tier.price_male_ron,
           )
+          // Streak discount applies to monthly tiers only; 6-month promo
+          // packages already have their discount baked into the price.
+          const discount =
+            tier.category === "monthly" && !queued ? nextDiscount : 0
+          const finalPrice = Math.max(price - discount, 0)
           return (
             <Card key={tier.id}>
               <CardHeader>
@@ -94,12 +133,22 @@ export default async function PlansPage({
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex items-center justify-between">
-                <p className="text-2xl font-semibold">
-                  {price.toLocaleString("ro-RO")}{" "}
-                  <span className="text-sm font-normal text-muted-foreground">
-                    RON
-                  </span>
-                </p>
+                <div>
+                  <p className="text-2xl font-semibold">
+                    {finalPrice.toLocaleString("ro-RO")}{" "}
+                    <span className="text-sm font-normal text-muted-foreground">
+                      RON
+                    </span>
+                  </p>
+                  {discount > 0 ? (
+                    <p className="text-xs text-muted-foreground">
+                      <span className="line-through">
+                        {price.toLocaleString("ro-RO")} RON
+                      </span>{" "}
+                      · {t("streakDiscountBadge", { discount })}
+                    </p>
+                  ) : null}
+                </div>
                 <RequestPlanButton
                   tierId={tier.id}
                   hasPending={hasPending}

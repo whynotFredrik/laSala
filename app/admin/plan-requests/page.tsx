@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/card"
 import { studioDateISO } from "@/lib/booking/rules"
 import { isPlanUsable } from "@/lib/plans/rules"
+import { nextStreakMonth, streakDiscountRon } from "@/lib/plans/streak"
 import { createClient } from "@/lib/supabase/server"
 
 import { RequestRow } from "./request-row"
@@ -21,7 +22,7 @@ export default async function PlanRequestsAdminPage() {
   const { data: requests } = await supabase
     .from("plan_requests")
     .select(
-      "id, user_id, created_at, status, notes, preferred_payment_method, plan_tiers(name_ro, price_male_ron, price_female_ron), profiles!user_id(full_name, email, sex)",
+      "id, user_id, created_at, status, notes, preferred_payment_method, plan_tiers(name_ro, category, price_male_ron, price_female_ron), profiles!user_id(full_name, email, sex)",
     )
     .eq("status", "pending")
     .order("created_at", { ascending: true })
@@ -31,19 +32,27 @@ export default async function PlanRequestsAdminPage() {
   const requesterIds = Array.from(
     new Set((requests ?? []).map((r) => r.user_id)),
   )
-  const { data: activePlans } =
+  const { data: plans } =
     requesterIds.length > 0
       ? await supabase
           .from("plans")
-          .select("user_id, end_date, sessions_used, sessions_total")
+          .select(
+            "user_id, status, end_date, sessions_used, sessions_total, streak_month",
+          )
           .in("user_id", requesterIds)
-          .eq("status", "active")
+          .in("status", ["active", "queued"])
       : { data: [] }
   const today = studioDateISO()
+  const activeByUser = new Map(
+    (plans ?? []).filter((p) => p.status === "active").map((p) => [p.user_id, p]),
+  )
   const usableByUser = new Set(
-    (activePlans ?? [])
-      .filter((p) => isPlanUsable(p, today))
+    (plans ?? [])
+      .filter((p) => p.status === "active" && isPlanUsable(p, today))
       .map((p) => p.user_id),
+  )
+  const queuedUsers = new Set(
+    (plans ?? []).filter((p) => p.status === "queued").map((p) => p.user_id),
   )
 
   const list = (requests ?? []).map((r) => {
@@ -55,6 +64,12 @@ export default async function PlanRequestsAdminPage() {
             : r.plan_tiers.price_male_ron,
         )
       : 0
+    // "Approving right now" perspective: on-time renewal continues the
+    // streak and (for monthly tiers) applies the discount. Mirrors
+    // `approve_plan_request` (0023).
+    const streakMonth = nextStreakMonth(activeByUser.get(r.user_id) ?? null)
+    const discount =
+      r.plan_tiers?.category === "monthly" ? streakDiscountRon(streakMonth) : 0
     return {
       id: r.id,
       created_at: r.created_at,
@@ -68,6 +83,12 @@ export default async function PlanRequestsAdminPage() {
         ? { name_ro: r.plan_tiers.name_ro, price_ron: price }
         : null,
       willQueue: usableByUser.has(r.user_id),
+      hasQueued: queuedUsers.has(r.user_id),
+      streak: {
+        month: streakMonth,
+        discount_ron: discount,
+        price_due_ron: Math.max(price - discount, 0),
+      },
     }
   })
 

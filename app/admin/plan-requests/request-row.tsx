@@ -35,6 +35,9 @@ export function RequestRow({
     preferred_payment_method: string | null
     /** Member still has a usable plan → approval queues the new one. */
     willQueue: boolean
+    /** A queued plan already exists → approval would be refused. */
+    hasQueued: boolean
+    streak: { month: number; discount_ron: number; price_due_ron: number }
   }
 }) {
   const t = useTranslations("adminPlanRequests")
@@ -98,9 +101,22 @@ export function RequestRow({
         {request.tier ? (
           <>
             {" · "}
-            <span className="text-muted-foreground">
-              {request.tier.price_ron} RON
-            </span>
+            {request.streak.discount_ron > 0 ? (
+              <span className="text-muted-foreground">
+                <span className="line-through">
+                  {request.tier.price_ron} RON
+                </span>{" "}
+                <span className="font-medium text-foreground">
+                  {request.streak.price_due_ron} RON
+                </span>{" "}
+                ({t("streakRenewal", { month: request.streak.month })}, −
+                {request.streak.discount_ron} RON)
+              </span>
+            ) : (
+              <span className="text-muted-foreground">
+                {request.tier.price_ron} RON
+              </span>
+            )}
           </>
         ) : null}
       </div>
@@ -110,6 +126,9 @@ export function RequestRow({
       <p className="text-xs text-muted-foreground">
         {request.willQueue ? t("willQueue") : t("willActivate")}
       </p>
+      {request.hasQueued ? (
+        <p className="text-sm text-destructive">{t("alreadyScheduled")}</p>
+      ) : null}
       <div
         className={
           request.willQueue
@@ -136,7 +155,11 @@ export function RequestRow({
             onChange={(e) => setStartDate(e.target.value)}
           />
         )}
-        <Button type="button" onClick={approve} disabled={pending}>
+        <Button
+          type="button"
+          onClick={approve}
+          disabled={pending || request.hasQueued}
+        >
           {t("approve")}
         </Button>
         <Button

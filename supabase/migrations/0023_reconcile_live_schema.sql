@@ -20,6 +20,12 @@
 --     activate_due_scheduled_plans dropped — superseded by status='queued'
 --     and activate_due_queued_plans. No row used is_scheduled.
 --
+-- The August schema itself is recorded as 0024–0026 (numbered after this
+-- file because they were already applied when it was written); the
+-- statements below are written so a fresh `db reset` works in file order:
+-- plpgsql bodies are not validated against columns at creation time, and the
+-- one plain-SQL statement touching is_scheduled is guarded.
+--
 -- Run after 0022_queued_plans.sql.
 -- ================================================================
 
@@ -27,8 +33,17 @@ begin;
 
 -- ============ SCHEMA: retire is_scheduled ============
 
-update public.plans set status = 'queued', is_active = false
-  where is_scheduled and status <> 'active';
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'plans'
+      and column_name = 'is_scheduled'
+  ) then
+    update public.plans set status = 'queued', is_active = false
+      where is_scheduled and status <> 'active';
+  end if;
+end $$;
 
 drop index if exists public.plans_one_scheduled_per_user;
 alter table public.plans drop constraint if exists plans_active_not_scheduled;

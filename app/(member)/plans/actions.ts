@@ -5,7 +5,8 @@ import { z } from "zod"
 
 import { requireUser } from "@/lib/auth/get-user"
 import { sendEmail } from "@/lib/email/send"
-import { getQueuedPlan } from "@/lib/plans/active"
+import { getActivePlan, getQueuedPlan } from "@/lib/plans/active"
+import { nextStreakMonth, streakDiscountRon } from "@/lib/plans/streak"
 import { createClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/service"
 
@@ -66,19 +67,30 @@ export async function requestPlanAction(
   // Look up the tier name + price so we can put it in the emails. Use the
   // service client because RLS restricts read access on plan_tiers to active.
   const service = createServiceClient()
-  const { data: tier } = await service
-    .from("plan_tiers")
-    .select("name_ro, price_male_ron, price_female_ron")
-    .eq("id", parsed.data.tierId)
-    .maybeSingle()
+  const [{ data: tier }, activePlan] = await Promise.all([
+    service
+      .from("plan_tiers")
+      .select("name_ro, category, price_male_ron, price_female_ron")
+      .eq("id", parsed.data.tierId)
+      .maybeSingle(),
+    getActivePlan(service, user.id),
+  ])
 
   if (tier) {
     const planName = tier.name_ro
     // Pick the price column for the requester's sex; fall back to male
     // price for legacy accounts where sex is unset.
-    const price = Number(
+    const basePrice = Number(
       profile.sex === "female" ? tier.price_female_ron : tier.price_male_ron,
     )
+    // Quote the streak-discounted price the member will pay if they settle
+    // before their current plan expires. The authoritative amount is decided
+    // at approval time in `approve_plan_request`.
+    const discount =
+      tier.category === "monthly"
+        ? streakDiscountRon(nextStreakMonth(activePlan))
+        : 0
+    const price = Math.max(basePrice - discount, 0)
     const recipientName = profile.full_name ?? profile.email
 
     // 1. User ack

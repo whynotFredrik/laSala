@@ -101,6 +101,8 @@ export async function signUpAction(
       tdee_height_cm: heightCm,
       gdpr_consented_at: new Date().toISOString(),
       gdpr_version: gdpr?.version ?? null,
+      // Self-declaration of medical fitness for sport (00184).
+      health_consented_at: new Date().toISOString(),
     })
     .eq("id", userId)
 

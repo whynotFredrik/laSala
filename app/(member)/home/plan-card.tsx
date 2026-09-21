@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { format } from "date-fns"
 import { ro } from "date-fns/locale"
 import { getTranslations } from "next-intl/server"
@@ -10,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { buttonVariants } from "@/components/ui/button"
 import type { PlanWithTier } from "@/lib/plans/active"
 import {
   isRenewalOnTime,
@@ -30,11 +32,20 @@ export async function PlanCard({
     return (
       <Alert>
         <AlertTitle>{t("noActivePlan")}</AlertTitle>
-        {queued ? (
-          <AlertDescription>
-            {t("nextPlanQueued", { name: queued.plan_tiers?.name_ro ?? "" })}
-          </AlertDescription>
-        ) : null}
+        <AlertDescription className="flex flex-col gap-3">
+          {queued ? (
+            <span>
+              {t("nextPlanQueued", { name: queued.plan_tiers?.name_ro ?? "" })}
+            </span>
+          ) : (
+            <>
+              <span>{t("noActivePlanBody")}</span>
+              <Link href="/plans" className={buttonVariants({ size: "sm" })}>
+                {t("choosePlan")}
+              </Link>
+            </>
+          )}
+        </AlertDescription>
       </Alert>
     )
   }

@@ -15,7 +15,7 @@ A booking and membership app for **Lasala Fitness Studio**, a small gym in Orade
 - **Server Actions** for mutations from the member-facing UI. **Route handlers** (`app/api/.../route.ts`) for webhooks, cron, and any endpoint a third party calls.
 - **next-intl** for i18n. All user-facing strings come from `messages/ro.json`. Never hardcode Romanian text in components.
 - **Zod** for input validation at every trust boundary (Server Actions, route handlers).
-- **Resend** for email. Templates live in `lib/email/templates/`, senders in `lib/email/send.ts`.
+- **Resend** for email. Templates live in `lib/email/templates.ts`, senders in `lib/email/send.ts`. In-app notifications (table `notifications`, bell + `/notifications`) and their emails go through `lib/notifications/notify.ts`.
 - **pnpm** as the package manager.
 
 ## Hard rules
@@ -26,7 +26,7 @@ These are non-negotiable. If a task seems to require breaking one, stop and surf
 2. **Never trust client-supplied user IDs or roles.** Always derive the user from `supabase.auth.getUser()` server-side. Always re-check role for admin operations server-side, even if middleware already gated the route.
 3. **Every table has Row Level Security enabled.** No exceptions. If you add a table, add RLS policies in the same migration.
 4. **Never call the service-role key from a Client Component or expose it to the browser.** It belongs in route handlers and server-only utilities.
-5. **Booking creation, cancellation, and rescheduling go through the Postgres function `book_session`, `cancel_booking`, `reschedule_booking`.** Do not implement those operations as separate `INSERT`/`UPDATE` calls from the application — they are race-prone. The functions are in `supabase/migrations/`.
+5. **Booking creation, cancellation, and rescheduling go through the Postgres functions `book_session`, `cancel_booking`, `reschedule_booking` (and `book_session_for` for admin/service-role bookings such as recurring pins).** Do not implement those operations as separate `INSERT`/`UPDATE` calls from the application — they are race-prone. The functions are in `supabase/migrations/`. Plan activation likewise only happens inside `activate_queued_plan` / `resolve_plan_for_booking` / `approve_plan_request`.
 6. **Never commit secrets.** `.env.local` is gitignored. Document required env vars in `.env.example`.
 7. **No `any`-typed Supabase responses.** Generate and use the database types: `pnpm supabase gen types typescript --project-id <id> > lib/supabase/database.types.ts`.
 
@@ -34,11 +34,15 @@ These are non-negotiable. If a task seems to require breaking one, stop and surf
 
 The studio's actual booking rules. These are encoded in Postgres functions and in `lib/booking/rules.ts`. If you change one, change it in both places and update the test.
 
-- **Sunday unlock:** sessions for week N+1 become bookable at `Europe/Bucharest` midnight on Sunday of week N. A session for Monday Oct 7 is bookable from Sunday Sep 29 00:00 Bucharest time onward.
+- **Sunday unlock:** sessions for week N+1 become bookable at `Europe/Bucharest` midnight on Sunday of week N (the day before that week starts). A session for Monday Oct 7 is bookable from Sunday Oct 6 00:00 Bucharest time onward.
+- **Session generation is automatic.** `/api/cron/daily-sync` (daily, 04:00 UTC) keeps the current studio week's sessions in sync and, from Saturday, creates next week's — one day before the Sunday unlock — then books every active recurring pin (`recurring_bookings`) against them. Pins are also booked immediately when added and when a plan activates. No manual "generate week" step.
 - **One booking per day per member.** Enforced via unique partial index `(user_id, session_date) where status = 'booked'`.
-- **Plan required and not expired.** `sessions_used < plan_total` AND `plan.end_date >= today`.
+- **Plan required and not expired.** `sessions_used < sessions_total` AND `plan.end_date >= session date`. When the active plan cannot cover a booking and the member has a **queued** plan, the queued plan activates on the spot (`resolve_plan_for_booking`) and the booking draws from it; otherwise up to 2 grace bookings apply.
+- **Queued renewal:** a member with an active plan may request another one. Approval queues it (`plans.status = 'queued'`, at most one per member); it activates automatically when the current plan is exhausted or expires. Activation date = the later of today and the day after the member's last booked session; `end_date` is recomputed from there.
+- **Renewal reminders:** plans with 12+ sessions get a "renew now" notification 3 sessions before the end, 8-session plans 2 sessions before, and again each time the remaining count drops — until a request is pending or a plan is queued (`lib/plans/rules.ts`).
+- **Members are not assigned to trainers.** Which sessions a member sees follows from `profiles.sex` (men → Eugen, women → Marina + Ana; `trainersForSex` in `lib/constants.ts`).
 - **Cancellation:** allowed up to 3 hours before `session.start_at`. Within 3 hours, the booking is locked.
-- **Reschedule:** counts increment in `bookings.reschedule_count_in_week`; cap is 2 per ISO week.
+- **Reschedule:** counts increment in `bookings.reschedule_count_iso_week`; cap is 2 per ISO week.
 - **Freeze:** member submits a freeze request with `start_date` (must be ≥48h from now) and `duration_days` (3–14). Freezing extends `plan.end_date` by `duration_days`. Total frozen days in any rolling 6-month window may not exceed 14.
 
 ## Code style

@@ -33,6 +33,8 @@ export function RequestRow({
     tier: { name_ro: string; price_ron: number } | null
     notes: string | null
     preferred_payment_method: string | null
+    /** Member still has a usable plan → approval queues the new one. */
+    willQueue: boolean
   }
 }) {
   const t = useTranslations("adminPlanRequests")
@@ -55,10 +57,10 @@ export function RequestRow({
       const res = await approvePlanRequestAction({
         requestId: request.id,
         paymentMethod,
-        startDate,
+        startDate: request.willQueue ? undefined : startDate,
       })
       if (res.status === "error") toast.error(t(res.message as "approve_failed"))
-      else toast.success(t("approved"))
+      else toast.success(t(res.outcome === "queued" ? "approvedQueued" : "approved"))
     })
 
   const reject = () =>
@@ -105,7 +107,16 @@ export function RequestRow({
       {request.notes ? (
         <p className="text-sm text-muted-foreground">{request.notes}</p>
       ) : null}
-      <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto_auto]">
+      <p className="text-xs text-muted-foreground">
+        {request.willQueue ? t("willQueue") : t("willActivate")}
+      </p>
+      <div
+        className={
+          request.willQueue
+            ? "grid gap-2 sm:grid-cols-[1fr_auto_auto]"
+            : "grid gap-2 sm:grid-cols-[1fr_1fr_auto_auto]"
+        }
+      >
         <Select
           value={paymentMethod}
           onValueChange={(v) => setPaymentMethod(v as PaymentMethod)}
@@ -118,11 +129,13 @@ export function RequestRow({
             <SelectItem value="cash">{t("cash")}</SelectItem>
           </SelectContent>
         </Select>
-        <Input
-          type="date"
-          value={startDate}
-          onChange={(e) => setStartDate(e.target.value)}
-        />
+        {request.willQueue ? null : (
+          <Input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+          />
+        )}
         <Button type="button" onClick={approve} disabled={pending}>
           {t("approve")}
         </Button>

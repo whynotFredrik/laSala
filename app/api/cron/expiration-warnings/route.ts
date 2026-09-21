@@ -1,19 +1,25 @@
 import { NextResponse, type NextRequest } from "next/server"
-import { format } from "date-fns"
+import { addDays, format } from "date-fns"
 import { ro } from "date-fns/locale"
 
-import { sendEmail } from "@/lib/email/send"
+import { formatStudio } from "@/lib/booking/format"
+import { studioNow } from "@/lib/booking/rules"
+import { notificationCopy, notify } from "@/lib/notifications/notify"
+import { expiryDedupeKey } from "@/lib/plans/rules"
 import { createServiceClient } from "@/lib/supabase/service"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
 
+const TARGETS = [7, 3, 1] as const
+
 /**
- * Daily cron — fires at 09:00 Bucharest. For every active plan that expires
- * in exactly 7, 3, or 1 days from today, send the user a warning email.
+ * Daily cron — for every active plan that expires in exactly 7, 3, or 1
+ * days from today (studio calendar, Europe/Bucharest), notify the member
+ * in-app + by email. Members with a queued plan are skipped: their
+ * renewal is already sorted.
  *
- * Auth: the request must include `Authorization: Bearer ${CRON_SECRET}`
- * (Vercel cron sends this automatically when CRON_SECRET is set in env).
+ * Auth: `Authorization: Bearer ${CRON_SECRET}` (Vercel sends it).
  */
 export async function GET(request: NextRequest) {
   const auth = request.headers.get("authorization")
@@ -22,39 +28,57 @@ export async function GET(request: NextRequest) {
   }
 
   const service = createServiceClient()
-  const today = new Date()
-  const targets = [7, 3, 1]
+  const nowLocal = studioNow()
+  const copy = notificationCopy()
   let sent = 0
 
-  for (const days of targets) {
-    const target = new Date(today)
-    target.setDate(target.getDate() + days)
-    const targetIso = target.toISOString().slice(0, 10)
+  for (const days of TARGETS) {
+    const targetIso = formatStudio(addDays(nowLocal, days), "yyyy-MM-dd")
 
     const { data: plans } = await service
       .from("plans")
       .select(
-        "id, end_date, sessions_total, sessions_used, profiles(id, email, full_name), plan_tiers(name_ro)",
+        "id, user_id, tier_id, end_date, profiles!plans_user_id_fkey(id, email, full_name), plan_tiers(name_ro)",
       )
-      .eq("is_active", true)
+      .eq("status", "active")
       .eq("end_date", targetIso)
+    if (!plans || plans.length === 0) continue
 
-    for (const plan of plans ?? []) {
-      if (!plan.profiles) continue
-      await sendEmail({
-        to: plan.profiles.email,
-        userId: plan.profiles.id,
-        template: "expirationWarning",
-        props: {
-          name: plan.profiles.full_name ?? plan.profiles.email,
-          planName: plan.plan_tiers?.name_ro ?? "—",
-          days,
-          endDate: format(new Date(plan.end_date), "d MMMM yyyy", {
-            locale: ro,
-          }),
+    const { data: queued } = await service
+      .from("plans")
+      .select("user_id")
+      .in(
+        "user_id",
+        plans.map((p) => p.user_id),
+      )
+      .eq("status", "queued")
+    const hasQueued = new Set((queued ?? []).map((q) => q.user_id))
+
+    for (const plan of plans) {
+      if (!plan.profiles || hasQueued.has(plan.user_id)) continue
+      const planName = plan.plan_tiers?.name_ro ?? "—"
+      const endDate = format(new Date(plan.end_date), "d MMMM yyyy", {
+        locale: ro,
+      })
+      const result = await notify({
+        userId: plan.user_id,
+        type: "expiration_warning",
+        title: copy("expirationTitle", { days }),
+        body: copy("expirationBody", { planName, endDate }),
+        data: { plan_id: plan.id, tier_id: plan.tier_id, days },
+        dedupeKey: expiryDedupeKey(plan.id, days),
+        email: {
+          to: plan.profiles.email,
+          template: "expirationWarning",
+          props: {
+            name: plan.profiles.full_name ?? plan.profiles.email,
+            planName,
+            days,
+            endDate,
+          },
         },
       })
-      sent++
+      if (result.status === "sent") sent++
     }
   }
 

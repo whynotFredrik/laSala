@@ -1,5 +1,8 @@
+import { format } from "date-fns"
+import { ro } from "date-fns/locale"
 import { getTranslations } from "next-intl/server"
 
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
   Card,
   CardContent,
@@ -8,17 +11,23 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { requireUser } from "@/lib/auth/get-user"
+import { getMemberPlans } from "@/lib/plans/active"
 import { createClient } from "@/lib/supabase/server"
 
 import { PayInfoCard } from "./pay-info-card"
 import { RequestPlanButton } from "./request-plan-button"
 
-export default async function PlansPage() {
+export default async function PlansPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tier?: string }>
+}) {
   const { user, profile } = await requireUser()
   const supabase = await createClient()
   const t = await getTranslations("plans")
+  const { tier: highlightTier } = await searchParams
 
-  const [{ data: tiers }, { data: pending }, { data: active }] =
+  const [{ data: tiers }, { data: pending }, { active, queued }] =
     await Promise.all([
       supabase
         .from("plan_tiers")
@@ -33,16 +42,11 @@ export default async function PlansPage() {
         .eq("user_id", user.id)
         .eq("status", "pending")
         .maybeSingle(),
-      supabase
-        .from("plans")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("is_active", true)
-        .maybeSingle(),
+      getMemberPlans(supabase, user.id),
     ])
 
   const hasPending = !!pending
-  const hasActive = !!active
+  const hasQueued = !!queued
   // Pick the price column for the member's sex. Falls back to male price
   // for the rare case a member's sex is somehow unset (legacy accounts).
   const sex = (profile.sex as "male" | "female" | null) ?? "male"
@@ -51,8 +55,27 @@ export default async function PlansPage() {
     <div className="space-y-6">
       <header>
         <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
-        <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
+        <p className="text-sm text-muted-foreground">
+          {active ? t("subtitleRenew") : t("subtitle")}
+        </p>
       </header>
+
+      {queued ? (
+        <Alert>
+          <AlertTitle>
+            {t("queuedTitle", { name: queued.plan_tiers?.name_ro ?? "" })}
+          </AlertTitle>
+          <AlertDescription>
+            {active
+              ? t("queuedBody", {
+                  endDate: format(new Date(active.end_date), "d MMM yyyy", {
+                    locale: ro,
+                  }),
+                })
+              : t("queuedBodyNoActive")}
+          </AlertDescription>
+        </Alert>
+      ) : null}
 
       <div className="grid gap-3 sm:grid-cols-2">
         {(tiers ?? []).map((tier) => {
@@ -80,7 +103,9 @@ export default async function PlansPage() {
                 <RequestPlanButton
                   tierId={tier.id}
                   hasPending={hasPending}
-                  hasActive={hasActive}
+                  hasQueued={hasQueued}
+                  isRenewal={!!active}
+                  highlight={highlightTier === tier.id}
                 />
               </CardContent>
             </Card>

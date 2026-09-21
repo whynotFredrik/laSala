@@ -42,20 +42,34 @@ export const RULES = {
 } as const
 
 /**
- * Trainer roster. Used by the sign-up action to assign a member to the
- * appropriate trainer based on their sex.
+ * Trainer roster. Members are NOT assigned to a trainer — which sessions
+ * they see and book is derived from their sex via `trainersForSex`:
  *
- * - Men → Eugen (only male trainer for now).
- * - Women → round-robin between Marina and Ana, balanced by current
- *   member count.
+ * - Men → Eugen's sessions.
+ * - Women → Marina's and Ana's sessions.
  *
- * Adding a trainer = add to this list + update the
- * `profiles.trainer` check constraint in a new migration.
+ * Adding a trainer = add to this list + update the `trainer` check
+ * constraints on `schedule_template` and `sessions` in a new migration.
  */
 export const TRAINERS = {
   male: ["Eugen"],
   female: ["Marina", "Ana"],
 } as const
+
+export const ALL_TRAINERS: readonly Trainer[] = [
+  ...TRAINERS.male,
+  ...TRAINERS.female,
+]
+
+/**
+ * Trainers whose sessions a member of the given sex sees. `null` (sex not
+ * set yet) means no filter — every trainer.
+ */
+export function trainersForSex(sex: Sex | null | undefined): readonly Trainer[] {
+  if (sex === "male") return TRAINERS.male
+  if (sex === "female") return TRAINERS.female
+  return ALL_TRAINERS
+}
 
 export type Sex = "male" | "female"
 export type Trainer =

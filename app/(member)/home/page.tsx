@@ -3,9 +3,11 @@ import { getTranslations } from "next-intl/server"
 
 import { buttonVariants } from "@/components/ui/button"
 import { requireUser } from "@/lib/auth/get-user"
+import { getMemberPlans } from "@/lib/plans/active"
 import { createClient } from "@/lib/supabase/server"
 
-import { PlanCard, type ActivePlan } from "./plan-card"
+import { PlanCard } from "./plan-card"
+import { RenewalBanner } from "./renewal-banner"
 import {
   UpcomingBookings,
   type UpcomingBooking,
@@ -16,14 +18,18 @@ export default async function HomePage() {
   const supabase = await createClient()
   const t = await getTranslations("home")
 
-  // Active plan + tier name. Returns one row max thanks to the partial unique
-  // index in 0001_init.sql; .maybeSingle() handles "no plan yet".
-  const { data: plan } = await supabase
-    .from("plans")
-    .select("*, plan_tiers(name_ro, name_en)")
-    .eq("user_id", profile.id)
-    .eq("is_active", true)
-    .maybeSingle()
+  // Active plan (+ the queued one waiting behind it, if any) and whether a
+  // renewal request is already pending — drives the renewal banner.
+  const [{ active: plan, queued }, { data: pendingRequest }] =
+    await Promise.all([
+      getMemberPlans(supabase, profile.id),
+      supabase
+        .from("plan_requests")
+        .select("id")
+        .eq("user_id", profile.id)
+        .eq("status", "pending")
+        .maybeSingle(),
+    ])
 
   // Next 3 upcoming bookings (status = booked AND session start in the future).
   // `!inner` makes the foreign-table filter actually exclude rows whose
@@ -51,7 +57,13 @@ export default async function HomePage() {
         </h1>
       </header>
 
-      <PlanCard plan={(plan ?? null) as ActivePlan} />
+      <RenewalBanner
+        plan={plan}
+        queued={queued}
+        hasPendingRequest={!!pendingRequest}
+      />
+
+      <PlanCard plan={plan} queued={queued} />
 
       <UpcomingBookings
         bookings={(bookings ?? []) as UpcomingBooking[]}

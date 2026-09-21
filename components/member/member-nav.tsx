@@ -1,11 +1,12 @@
 import { Logo } from "@/components/brand/logo"
 import { MemberNavLinks } from "@/components/member/member-nav-links"
+import { NotificationsBell } from "@/components/member/notifications-bell"
 import { SignOutButton } from "@/components/member/sign-out-button"
 
 /**
  * Top nav for authenticated member pages. Logo on the left links back to
  * /home, link row scrolls horizontally on narrow screens with the active
- * link underlined, sign-out anchored to the right.
+ * link underlined, notification bell + sign-out anchored to the right.
  */
 export function MemberNav() {
   return (
@@ -13,6 +14,7 @@ export function MemberNav() {
       <div className="mx-auto flex h-14 max-w-3xl items-center gap-3 px-4">
         <Logo href="/home" size="md" />
         <MemberNavLinks />
+        <NotificationsBell />
         <SignOutButton />
       </div>
     </header>

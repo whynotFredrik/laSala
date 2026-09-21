@@ -80,40 +80,6 @@ export async function setUserRoleAction(input: {
   return { status: "ok" as const }
 }
 
-const trainerSchema = z.object({
-  userId: z.string().uuid(),
-  trainer: z.enum(["Eugen", "Marina", "Ana"]),
-})
-
-/**
- * Reassign a member to a different trainer. The auto-assignment at
- * sign-up only runs once; admins use this to move a member after the
- * fact (e.g. accommodating a member preference).
- */
-export async function setUserTrainerAction(input: {
-  userId: string
-  trainer: "Eugen" | "Marina" | "Ana"
-}) {
-  const parsed = trainerSchema.safeParse(input)
-  if (!parsed.success) {
-    return { status: "error" as const, message: "invalid_input" }
-  }
-  await requireAdmin()
-  const service = createServiceClient()
-  const { error } = await service
-    .from("profiles")
-    .update({
-      trainer: parsed.data.trainer,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", parsed.data.userId)
-  if (error) {
-    return { status: "error" as const, message: "save_failed" }
-  }
-  revalidatePath(`/admin/users/${input.userId}`)
-  return { status: "ok" as const }
-}
-
 const moveBookingSchema = z.object({
   userId: z.string().uuid(),
   bookingId: z.string().uuid(),

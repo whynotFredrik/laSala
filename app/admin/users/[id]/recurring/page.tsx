@@ -11,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { trainersForSex, type Sex } from "@/lib/constants"
 import { createClient } from "@/lib/supabase/server"
 
 import { AddRecurring, type SlotOption } from "./add-recurring"
@@ -38,7 +39,7 @@ export default async function RecurringPage({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, full_name, email, trainer")
+    .select("id, full_name, email, sex")
     .eq("id", id)
     .maybeSingle()
   if (!profile) notFound()
@@ -71,9 +72,10 @@ export default async function RecurringPage({
     existingList.map((r) => r.schedule_template?.id).filter(Boolean) as string[],
   )
 
-  // All enabled slots — optionally filtered to the member's trainer so the
-  // dropdown doesn't suggest assignments that violate the trainer/sex rule.
-  let availableQuery = supabase
+  // All enabled slots. The client component groups them per trainer
+  // (tabs); the tab opened by default is the first trainer serving the
+  // member's sex.
+  const { data: allSlots } = await supabase
     .from("schedule_template")
     .select(
       "id, day_of_week, start_hour, start_minute, trainer, capacity, is_enabled",
@@ -81,10 +83,11 @@ export default async function RecurringPage({
     .eq("is_enabled", true)
     .order("day_of_week", { ascending: true })
     .order("start_hour", { ascending: true })
-  if (profile.trainer) {
-    availableQuery = availableQuery.eq("trainer", profile.trainer)
-  }
-  const { data: allSlots } = await availableQuery
+    .order("start_minute", { ascending: true })
+
+  const sex: Sex | null =
+    profile.sex === "male" || profile.sex === "female" ? profile.sex : null
+  const defaultTrainer = trainersForSex(sex)[0] ?? null
 
   const availableSlots: SlotOption[] = (allSlots ?? [])
     .filter((s) => !pinnedTemplateIds.has(s.id))
@@ -162,14 +165,14 @@ export default async function RecurringPage({
       <Card>
         <CardHeader>
           <CardTitle>{t("addNew")}</CardTitle>
-          <CardDescription>
-            {profile.trainer
-              ? t("filteredByTrainer", { trainer: profile.trainer })
-              : t("memberHasNoTrainer")}
-          </CardDescription>
+          <CardDescription>{t("pickTrainerHint")}</CardDescription>
         </CardHeader>
         <CardContent>
-          <AddRecurring userId={profile.id} slots={availableSlots} />
+          <AddRecurring
+            userId={profile.id}
+            slots={availableSlots}
+            defaultTrainer={defaultTrainer}
+          />
         </CardContent>
       </Card>
 

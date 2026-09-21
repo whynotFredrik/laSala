@@ -6,6 +6,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { studioDateISO } from "@/lib/booking/rules"
+import { isPlanUsable } from "@/lib/plans/rules"
 import { createClient } from "@/lib/supabase/server"
 
 import { RequestRow } from "./request-row"
@@ -19,10 +21,30 @@ export default async function PlanRequestsAdminPage() {
   const { data: requests } = await supabase
     .from("plan_requests")
     .select(
-      "id, created_at, status, notes, preferred_payment_method, plan_tiers(name_ro, price_male_ron, price_female_ron), profiles!user_id(full_name, email, sex)",
+      "id, user_id, created_at, status, notes, preferred_payment_method, plan_tiers(name_ro, price_male_ron, price_female_ron), profiles!user_id(full_name, email, sex)",
     )
     .eq("status", "pending")
     .order("created_at", { ascending: true })
+
+  // Which requesters still have a usable plan → approval will QUEUE the
+  // new plan instead of activating it (same rule as approve_plan_request).
+  const requesterIds = Array.from(
+    new Set((requests ?? []).map((r) => r.user_id)),
+  )
+  const { data: activePlans } =
+    requesterIds.length > 0
+      ? await supabase
+          .from("plans")
+          .select("user_id, end_date, sessions_used, sessions_total")
+          .in("user_id", requesterIds)
+          .eq("status", "active")
+      : { data: [] }
+  const today = studioDateISO()
+  const usableByUser = new Set(
+    (activePlans ?? [])
+      .filter((p) => isPlanUsable(p, today))
+      .map((p) => p.user_id),
+  )
 
   const list = (requests ?? []).map((r) => {
     const sex = r.profiles?.sex as "male" | "female" | null
@@ -45,6 +67,7 @@ export default async function PlanRequestsAdminPage() {
       tier: r.plan_tiers
         ? { name_ro: r.plan_tiers.name_ro, price_ron: price }
         : null,
+      willQueue: usableByUser.has(r.user_id),
     }
   })
 

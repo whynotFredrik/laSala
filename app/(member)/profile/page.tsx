@@ -41,12 +41,6 @@ export default async function ProfilePage() {
               profile.tdee_height_cm ? Number(profile.tdee_height_cm) : null
             }
           />
-          {profile.trainer ? (
-            <p className="rounded border bg-muted/40 p-2 text-sm">
-              <span className="text-muted-foreground">{t("trainer")}: </span>
-              <span className="font-medium">{profile.trainer}</span>
-            </p>
-          ) : null}
         </CardContent>
       </Card>
 

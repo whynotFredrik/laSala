@@ -422,6 +422,50 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          body: string
+          created_at: string
+          data: Json
+          dedupe_key: string | null
+          id: string
+          read_at: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          data?: Json
+          dedupe_key?: string | null
+          id?: string
+          read_at?: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          data?: Json
+          dedupe_key?: string | null
+          id?: string
+          read_at?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       nutrition_logs: {
         Row: {
           calories: number | null
@@ -586,6 +630,7 @@ export type Database = {
       }
       plans: {
         Row: {
+          activated_at: string | null
           created_at: string
           end_date: string
           grace_used: number
@@ -595,10 +640,12 @@ export type Database = {
           sessions_total: number
           sessions_used: number
           start_date: string
+          status: string
           tier_id: string
           user_id: string
         }
         Insert: {
+          activated_at?: string | null
           created_at?: string
           end_date: string
           grace_used?: number
@@ -608,10 +655,12 @@ export type Database = {
           sessions_total: number
           sessions_used?: number
           start_date: string
+          status?: string
           tier_id: string
           user_id: string
         }
         Update: {
+          activated_at?: string | null
           created_at?: string
           end_date?: string
           grace_used?: number
@@ -621,6 +670,7 @@ export type Database = {
           sessions_total?: number
           sessions_used?: number
           start_date?: string
+          status?: string
           tier_id?: string
           user_id?: string
         }
@@ -658,7 +708,6 @@ export type Database = {
           tdee_age: number | null
           tdee_height_cm: number | null
           tdee_value: number | null
-          trainer: string | null
           updated_at: string
         }
         Insert: {
@@ -677,7 +726,6 @@ export type Database = {
           tdee_age?: number | null
           tdee_height_cm?: number | null
           tdee_value?: number | null
-          trainer?: string | null
           updated_at?: string
         }
         Update: {
@@ -696,7 +744,6 @@ export type Database = {
           tdee_age?: number | null
           tdee_height_cm?: number | null
           tdee_value?: number | null
-          trainer?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -846,6 +893,7 @@ export type Database = {
           created_at: string
           end_at: string
           id: string
+          schedule_template_id: string | null
           session_date: string
           start_at: string
           trainer: string | null
@@ -858,6 +906,7 @@ export type Database = {
           created_at?: string
           end_at: string
           id?: string
+          schedule_template_id?: string | null
           session_date: string
           start_at: string
           trainer?: string | null
@@ -870,6 +919,7 @@ export type Database = {
           created_at?: string
           end_at?: string
           id?: string
+          schedule_template_id?: string | null
           session_date?: string
           start_at?: string
           trainer?: string | null
@@ -881,6 +931,13 @@ export type Database = {
             columns: ["class_id"]
             isOneToOne: false
             referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sessions_schedule_template_id_fkey"
+            columns: ["schedule_template_id"]
+            isOneToOne: false
+            referencedRelation: "schedule_template"
             referencedColumns: ["id"]
           },
         ]
@@ -925,13 +982,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      approve_plan_request: {
-        Args: {
-          p_payment_method: Database["public"]["Enums"]["payment_method"]
-          p_request_id: string
-          p_start_date?: string
-        }
+      activate_due_queued_plans: {
+        Args: Record<PropertyKey, never>
         Returns: {
+          activated_at: string | null
           created_at: string
           end_date: string
           grace_used: number
@@ -941,6 +995,59 @@ export type Database = {
           sessions_total: number
           sessions_used: number
           start_date: string
+          status: string
+          tier_id: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "plans"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      activate_queued_plan: {
+        Args: { p_activation_date?: string | null; p_plan_id: string }
+        Returns: {
+          activated_at: string | null
+          created_at: string
+          end_date: string
+          grace_used: number
+          id: string
+          is_active: boolean
+          payment_method: Database["public"]["Enums"]["payment_method"] | null
+          sessions_total: number
+          sessions_used: number
+          start_date: string
+          status: string
+          tier_id: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "plans"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      approve_plan_request: {
+        Args: {
+          p_payment_method: Database["public"]["Enums"]["payment_method"]
+          p_request_id: string
+          p_start_date?: string | null
+        }
+        Returns: {
+          activated_at: string | null
+          created_at: string
+          end_date: string
+          grace_used: number
+          id: string
+          is_active: boolean
+          payment_method: Database["public"]["Enums"]["payment_method"] | null
+          sessions_total: number
+          sessions_used: number
+          start_date: string
+          status: string
           tier_id: string
           user_id: string
         }
@@ -974,7 +1081,11 @@ export type Database = {
         }
       }
       book_session_for: {
-        Args: { p_session_id: string; p_user_id: string }
+        Args: {
+          p_allow_grace?: boolean
+          p_session_id: string
+          p_user_id: string
+        }
         Returns: {
           booked_at: string
           cancelled_at: string | null
@@ -1034,6 +1145,34 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      resolve_plan_for_booking: {
+        Args: { p_session_date: string; p_user_id: string }
+        Returns: {
+          activated_at: string | null
+          created_at: string
+          end_date: string
+          grace_used: number
+          id: string
+          is_active: boolean
+          payment_method: Database["public"]["Enums"]["payment_method"] | null
+          sessions_total: number
+          sessions_used: number
+          start_date: string
+          status: string
+          tier_id: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "plans"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      studio_today: {
+        Args: Record<PropertyKey, never>
+        Returns: string
       }
       is_admin: { Args: never; Returns: boolean }
       reschedule_booking: {

@@ -5,6 +5,7 @@ import { z } from "zod"
 
 import { requireUser } from "@/lib/auth/get-user"
 import { sendEmail } from "@/lib/email/send"
+import { getQueuedPlan } from "@/lib/plans/active"
 import { createClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/service"
 
@@ -29,7 +30,9 @@ export type PlanRequestState =
  *   2. Notification to the admin inbox (who/what/how-much).
  *
  * The partial unique index `(user_id) where status = 'pending'` blocks
- * duplicate pending requests — surface that as `already_pending`.
+ * duplicate pending requests — surface that as `already_pending`. An
+ * active plan does NOT block a request (the new plan is queued on
+ * approval), but an already-queued plan does (`already_queued`).
  */
 export async function requestPlanAction(
   input: z.infer<typeof requestSchema>,
@@ -41,6 +44,10 @@ export async function requestPlanAction(
 
   const { user, profile } = await requireUser()
   const supabase = await createClient()
+
+  if (await getQueuedPlan(supabase, user.id)) {
+    return { status: "error", message: "already_queued" }
+  }
 
   const { error } = await supabase.from("plan_requests").insert({
     user_id: user.id,

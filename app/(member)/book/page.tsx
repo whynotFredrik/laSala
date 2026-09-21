@@ -12,6 +12,7 @@ import { BookButton } from "@/components/member/book-button"
 import { formatStudio } from "@/lib/booking/format"
 import { nextSevenDays, isUnlocked } from "@/lib/booking/rules"
 import { requireUser } from "@/lib/auth/get-user"
+import { trainersForSex } from "@/lib/constants"
 import { createClient } from "@/lib/supabase/server"
 import type { Database } from "@/lib/supabase/database.types"
 
@@ -31,24 +32,14 @@ export default async function BookPage() {
   const firstDay = days[0]!
   const lastDay = days[days.length - 1]!
 
-  // Pull every session in the 7-day window. Filter rules:
-  //   - If the member has a specific trainer assigned, show only that
-  //     trainer's sessions (men → Eugen, or women whom an admin has
-  //     pinned to Marina/Ana).
-  //   - If no specific trainer is assigned (typical for newly-signed-up
-  //     women before the admin picks Marina vs. Ana), fall back to
-  //     filtering by trainer-gender: women see Marina + Ana, men see
-  //     Eugen. This prevents women from seeing the men-only lineup
-  //     (and vice versa) just because the admin hasn't gotten to them yet.
-  const trainer = profile.trainer
+  // Pull every session in the 7-day window, filtered by the trainers
+  // that serve the member's sex (men → Eugen, women → Marina + Ana).
+  // Members are not assigned to an individual trainer. A profile with
+  // no sex yet sees every trainer.
   const visibleTrainers =
-    trainer != null
-      ? [trainer]
-      : profile.sex === "female"
-        ? ["Marina", "Ana"]
-        : profile.sex === "male"
-          ? ["Eugen"]
-          : null
+    profile.sex === "male" || profile.sex === "female"
+      ? trainersForSex(profile.sex)
+      : null
 
   let sessionsQuery = supabase
     .from("sessions")
@@ -58,7 +49,7 @@ export default async function BookPage() {
     .order("start_at", { ascending: true })
 
   if (visibleTrainers) {
-    sessionsQuery = sessionsQuery.in("trainer", visibleTrainers)
+    sessionsQuery = sessionsQuery.in("trainer", [...visibleTrainers])
   }
 
   const { data: sessionsRaw } = await sessionsQuery

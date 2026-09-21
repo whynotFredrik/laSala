@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useEffect, useState, useTransition } from "react"
 import { useTranslations } from "next-intl"
 import { toast } from "sonner"
 
@@ -27,14 +27,24 @@ import { requestPlanAction } from "./actions"
 
 type PaymentMethod = "pos" | "cash"
 
+/**
+ * "Request plan" button. A member may request a plan while another one is
+ * active (it will be queued on approval); only a pending request or an
+ * already-queued plan blocks a new request. `highlight` (from
+ * `/plans?tier=<id>`, used by renewal reminders) opens the dialog on load.
+ */
 export function RequestPlanButton({
   tierId,
   hasPending,
-  hasActive,
+  hasQueued,
+  isRenewal,
+  highlight = false,
 }: {
   tierId: string
   hasPending: boolean
-  hasActive: boolean
+  hasQueued: boolean
+  isRenewal: boolean
+  highlight?: boolean
 }) {
   const t = useTranslations("plans")
   const tErrors = useTranslations("plansErrors")
@@ -43,7 +53,11 @@ export function RequestPlanButton({
   const [notes, setNotes] = useState("")
   const [pending, start] = useTransition()
 
-  const disabled = hasPending || hasActive
+  const disabled = hasPending || hasQueued
+
+  useEffect(() => {
+    if (highlight && !disabled) setOpen(true)
+  }, [highlight, disabled])
 
   const submit = () => {
     start(async () => {
@@ -69,18 +83,22 @@ export function RequestPlanButton({
         disabled={disabled}
         onClick={() => setOpen(true)}
       >
-        {hasActive
-          ? t("alreadyActive")
+        {hasQueued
+          ? t("alreadyQueued")
           : hasPending
             ? t("alreadyPending")
-            : t("request")}
+            : isRenewal
+              ? t("renew")
+              : t("request")}
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t("requestDialogTitle")}</DialogTitle>
-            <DialogDescription>{t("requestDialogBody")}</DialogDescription>
+            <DialogDescription>
+              {isRenewal ? t("renewDialogBody") : t("requestDialogBody")}
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">

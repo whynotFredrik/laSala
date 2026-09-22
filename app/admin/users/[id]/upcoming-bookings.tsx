@@ -146,6 +146,15 @@ export function UpcomingBookings({
               return sx !== sy ? sx - sy : x.startAt.localeCompare(y.startAt)
             })
 
+          // Base UI's Select.Value shows the raw value (a session id) unless
+          // the root knows the items' labels — hand them over.
+          const items = compatible.map((c) => ({
+            value: c.id,
+            label: `${formatStudio(c.startAt, "EEE d MMM, HH:mm")}${
+              c.trainer ? ` · ${c.trainer}` : ""
+            } · ${c.spotsLeft} ${t("spotsLeftShort")}`,
+          }))
+
           return (
             <li key={b.id} className="space-y-2 rounded border p-3">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -161,6 +170,7 @@ export function UpcomingBookings({
               </div>
               <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto]">
                 <Select
+                  items={items}
                   value={selected[b.id] ?? ""}
                   onValueChange={(v) =>
                     setSelected((prev) => ({ ...prev, [b.id]: v ?? "" }))
@@ -177,11 +187,9 @@ export function UpcomingBookings({
                           : t("noSameTrainerSessions")}
                       </SelectItem>
                     ) : (
-                      compatible.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {formatStudio(c.startAt, "EEE d MMM, HH:mm")}
-                          {c.trainer ? ` · ${c.trainer}` : ""}
-                          {` · ${c.spotsLeft} ${t("spotsLeftShort")}`}
+                      items.map((item) => (
+                        <SelectItem key={item.value} value={item.value}>
+                          {item.label}
                         </SelectItem>
                       ))
                     )}

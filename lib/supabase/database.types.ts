@@ -264,6 +264,38 @@ export type Database = {
           },
         ]
       }
+      daily_agenda_recipients: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          email: string
+          id: string
+          trainer: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          email: string
+          id?: string
+          trainer?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          email?: string
+          id?: string
+          trainer?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_agenda_recipients_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_log: {
         Row: {
           created_at: string

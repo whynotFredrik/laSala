@@ -20,6 +20,10 @@
     {
       "path": "/api/cron/calendar-sync",
       "schedule": "30 6 * * *"
+    },
+    {
+      "path": "/api/cron/daily-agenda",
+      "schedule": "0 17 * * *"
     }
   ]
 }

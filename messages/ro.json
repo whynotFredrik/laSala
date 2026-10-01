@@ -352,6 +352,24 @@
     "pendingRequests": "Cereri de planuri în așteptare",
     "enterMemberPreview": "Vedere client"
   },
+  "adminAgenda": {
+    "title": "Orarul zilei următoare pe email",
+    "description": "Adresele de aici primesc în fiecare seară (în jur de ora 20) orarul de mâine: sesiunile, antrenorul și cine e rezervat.",
+    "none": "Nicio adresă adăugată.",
+    "email": "Email",
+    "emailPlaceholder": "nume@exemplu.ro",
+    "trainer": "Ce orar primește",
+    "allTrainers": "Toți antrenorii",
+    "onlyTrainer": "Doar {trainer}",
+    "add": "Adaugă",
+    "added": "Adresă adăugată",
+    "remove": "Elimină",
+    "removed": "Adresă eliminată",
+    "removeConfirm": "Sigur nu mai trimitem orarul la {email}?",
+    "invalid_email": "Adresa de email nu este validă.",
+    "already_added": "Adresa este deja în listă.",
+    "save_failed": "Salvarea a eșuat."
+  },
   "adminPreview": {
     "title": "Vedere client",
     "subtitle": "Vezi aplicația exact așa cum o vede un membru. Acțiunile (rezervări, plăți) se aplică pe contul tău.",

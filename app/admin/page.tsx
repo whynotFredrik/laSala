@@ -12,10 +12,12 @@ import {
 import { createClient } from "@/lib/supabase/server"
 
 import { enterMemberPreviewAction } from "./actions"
+import AgendaRecipients from "./agenda-recipients"
 
 export default async function AdminDashboard() {
   const supabase = await createClient()
   const t = await getTranslations("adminDashboard")
+  const tAgenda = await getTranslations("adminAgenda")
 
   const monthStart = startOfMonth(new Date()).toISOString()
   const todayIso = new Date().toISOString().slice(0, 10)
@@ -27,6 +29,7 @@ export default async function AdminDashboard() {
     { count: bookingsThisMonth },
     { count: activeFreezes },
     { count: pendingRequests },
+    { data: agendaRecipients },
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -49,6 +52,10 @@ export default async function AdminDashboard() {
       .from("plan_requests")
       .select("id", { count: "exact", head: true })
       .eq("status", "pending"),
+    supabase
+      .from("daily_agenda_recipients")
+      .select("id, email, trainer")
+      .order("created_at", { ascending: true }),
   ])
 
   const stats = [
@@ -83,6 +90,15 @@ export default async function AdminDashboard() {
           </Card>
         ))}
       </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>{tAgenda("title")}</CardTitle>
+          <CardDescription>{tAgenda("description")}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AgendaRecipients recipients={agendaRecipients ?? []} />
+        </CardContent>
+      </Card>
     </div>
   )
 }

@@ -6,6 +6,8 @@
 
 import { BUSINESS, EMAIL_SENDERS } from "@/lib/constants"
 
+import type { AgendaSession } from "@/lib/agenda/daily-agenda"
+
 import { escape } from "./layout"
 
 type SenderKey = keyof typeof EMAIL_SENDERS
@@ -94,6 +96,13 @@ export type TemplatePropsMap = {
   adminExpiryDigest: {
     date: string
     lines: string[]
+  }
+  dailyAgenda: {
+    /** "joi, 2 octombrie 2026" */
+    date: string
+    /** Set when the recipient only follows one trainer. */
+    trainer: string | null
+    sessions: AgendaSession[]
   }
 }
 
@@ -285,6 +294,34 @@ export const TEMPLATES: {
       <p>Membrii de mai jos au fost anunțați astăzi că abonamentul lor expiră:</p>
       <ul>${p.lines.map((line) => `<li>${escape(line)}</li>`).join("")}</ul>
       <p>Poți vedea detaliile fiecăruia în panoul de administrare, la Utilizatori.</p>
+    `,
+    sender: "hello",
+  }),
+
+  dailyAgenda: (p) => ({
+    subject: `Orarul de mâine — ${p.date}${p.trainer ? ` · ${p.trainer}` : ""}`,
+    heading: `Orarul de mâine${p.trainer ? `, ${p.trainer}` : ""}`,
+    body: `
+      <p><strong>${escape(p.date)}</strong></p>
+      ${
+        p.sessions.length === 0
+          ? "<p>Nicio sesiune programată mâine.</p>"
+          : p.sessions
+              .map(
+                (s) => `
+      <p style="margin:16px 0 4px;">
+        <strong>${escape(s.time)}</strong> · ${escape(s.className)}${s.trainer ? ` · ${escape(s.trainer)}` : ""}
+        <span style="color:#64748b;">(${s.roster.length}/${s.capacity} locuri)</span>
+      </p>
+      ${
+        s.roster.length === 0
+          ? '<p style="margin:0;color:#64748b;">Nicio rezervare încă.</p>'
+          : `<ul style="margin:0;">${s.roster.map((name) => `<li>${escape(name)}</li>`).join("")}</ul>`
+      }`,
+              )
+              .join("")
+      }
+      <p style="margin-top:20px;color:#64748b;">Rezervările se pot modifica până cu 3 ore înainte de sesiune, deci lista poate suferi schimbări.</p>
     `,
     sender: "hello",
   }),

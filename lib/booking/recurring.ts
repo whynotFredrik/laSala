@@ -105,6 +105,21 @@ async function loadCandidates(
   const { data: sessions, error: sesErr } = await sessionQuery
   if (sesErr) throw new Error(`sessions_load_failed: ${sesErr.message}`)
 
+  // Sessions a member moved away from or cancelled (migration 0029): a
+  // one-off change for that week, so the pin must not book them back.
+  const sessionIdList = (sessions ?? []).map((s) => s.id)
+  const skipped = new Set<string>()
+  if (sessionIdList.length > 0) {
+    let skipQuery = service
+      .from("recurring_skips")
+      .select("user_id, session_id")
+      .in("session_id", sessionIdList)
+    if (filter.userId) skipQuery = skipQuery.eq("user_id", filter.userId)
+    const { data: skips, error: skipErr } = await skipQuery
+    if (skipErr) throw new Error(`skips_load_failed: ${skipErr.message}`)
+    for (const s of skips ?? []) skipped.add(`${s.user_id}:${s.session_id}`)
+  }
+
   const pinsByTemplate = new Map<string, string[]>()
   for (const p of pins) {
     const list = pinsByTemplate.get(p.schedule_template_id) ?? []
@@ -116,6 +131,7 @@ async function loadCandidates(
   for (const s of sessions ?? []) {
     if (!s.schedule_template_id) continue
     for (const userId of pinsByTemplate.get(s.schedule_template_id) ?? []) {
+      if (skipped.has(`${userId}:${s.id}`)) continue
       out.push({
         userId,
         sessionId: s.id,

@@ -31,8 +31,9 @@ export const signUpSchema = z.object({
   email: z.string().email(),
   phone: z
     .string()
-    .trim()
-    .regex(phoneRegex, "phone_invalid"),
+    // The form placeholder is "07XX XXX XXX", so accept inner spaces too.
+    .transform((v) => v.replace(/\s+/g, ""))
+    .pipe(z.string().regex(phoneRegex, "phone_invalid")),
   sex: z.enum(["male", "female"]),
   age: z.coerce.number().int().min(13).max(100),
   heightCm: z.coerce.number().min(120).max(230),

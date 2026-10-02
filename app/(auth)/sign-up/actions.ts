@@ -7,6 +7,14 @@ import { siteUrl } from "@/lib/constants"
 import { createClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/service"
 
+const SIGN_UP_ERROR_KEYS: ReadonlySet<string> = new Set([
+  "phone_invalid",
+  "password_too_short",
+  "password_no_spaces",
+  "gdpr_required",
+  "health_required",
+])
+
 export type SignUpState =
   | { status: "idle" }
   | { status: "error"; message: string }
@@ -41,11 +49,18 @@ export async function signUpAction(
     heightCm: formData.get("heightCm"),
     password: formData.get("password"),
     gdprConsent: formData.get("gdprConsent") === "on",
+    healthConsent: formData.get("healthConsent") === "on",
   })
 
   if (!parsed.success) {
-    const first = parsed.error.issues[0]
-    return { status: "error", message: first?.message ?? "invalid_input" }
+    // Only our own refinements carry an `authErrors` key as message; Zod's
+    // built-in messages ("Invalid input: …") are not translatable keys.
+    const message = parsed.error.issues[0]?.message
+    return {
+      status: "error",
+      message:
+        message && SIGN_UP_ERROR_KEYS.has(message) ? message : "invalid_input",
+    }
   }
 
   const { firstName, lastName, email, phone, sex, age, heightCm, password } =

@@ -336,11 +336,25 @@
     "dashboard": "Panou",
     "users": "Utilizatori",
     "planRequests": "Cereri",
+    "expiring": "Expirări",
     "sessions": "Sesiuni",
     "schedule": "Orar",
     "planTiers": "Tarife",
     "gdpr": "GDPR",
     "memberView": "Vedere membru"
+  },
+  "adminExpiring": {
+    "title": "Abonamente care expiră",
+    "subtitle": "Săptămâna {week}: {count, plural, =0 {niciun abonament} one {un abonament} other {# abonamente}} cu data de expirare în acest interval.",
+    "prevWeek": "Săptămâna anterioară",
+    "thisWeek": "Săptămâna curentă",
+    "nextWeek": "Săptămâna viitoare",
+    "none": "Niciun abonament nu expiră în această săptămână.",
+    "today": "azi",
+    "countForDay": "{count, plural, one {un abonament} other {# abonamente}}",
+    "sessionsLeft": "{count, plural, =0 {nicio sesiune rămasă} one {o sesiune rămasă} other {# sesiuni rămase}}",
+    "streak": "streak luna {month}",
+    "requestPending": "cerere de reînnoire în așteptare"
   },
   "adminDashboard": {
     "title": "Panou administrator",

@@ -4,6 +4,7 @@ import { useState, useTransition } from "react"
 import { useTranslations } from "next-intl"
 import { toast } from "sonner"
 
+import TrainerBadge from "@/components/trainer-badge"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -217,9 +218,13 @@ export function ScheduleEditor({ slots }: { slots: ScheduleSlot[] }) {
                         · {s.duration_min}min · {s.capacity}{" "}
                         {t("capacityShort")}
                       </span>
-                      <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-xs">
-                        {s.trainer ?? "—"}
-                      </span>
+                      {s.trainer ? (
+                        <TrainerBadge trainer={s.trainer} className="ml-2" />
+                      ) : (
+                        <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-xs">
+                          —
+                        </span>
+                      )}
                       {!s.is_enabled ? (
                         <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
                           {t("disabled")}

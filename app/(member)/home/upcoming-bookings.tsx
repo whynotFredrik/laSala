@@ -11,8 +11,10 @@ import {
   RescheduleDialog,
   type CandidateSession,
 } from "@/components/member/reschedule-dialog"
+import TrainerBadge from "@/components/trainer-badge"
 import { formatStudio } from "@/lib/booking/format"
 import { isCancellable, nextSevenDays, isUnlocked } from "@/lib/booking/rules"
+import { trainerColors } from "@/lib/constants"
 import { createClient } from "@/lib/supabase/server"
 import type { Database } from "@/lib/supabase/database.types"
 
@@ -22,7 +24,7 @@ type ClassRow = Database["public"]["Tables"]["classes"]["Row"]
 
 export type UpcomingBooking = BookingRow & {
   sessions:
-    | (Pick<SessionRow, "id" | "start_at" | "end_at"> & {
+    | (Pick<SessionRow, "id" | "start_at" | "end_at" | "trainer"> & {
         classes: Pick<ClassRow, "name_ro"> | null
       })
     | null
@@ -50,7 +52,7 @@ export async function UpcomingBookings({
   const { data: rawCandidates } = await supabase
     .from("sessions")
     .select(
-      "id, session_date, start_at, capacity, booked_count, unlock_at, classes(name_ro)",
+      "id, session_date, start_at, capacity, booked_count, unlock_at, trainer, classes(name_ro)",
     )
     .gte("session_date", firstDay)
     .lte("session_date", lastDay)
@@ -71,6 +73,7 @@ export async function UpcomingBookings({
       spots_left: Math.max(s.capacity - s.booked_count, 0),
       full: s.capacity - s.booked_count <= 0,
       class_name: s.classes?.name_ro ?? null,
+      trainer: s.trainer,
     }))
 
   return (
@@ -92,12 +95,19 @@ export async function UpcomingBookings({
               return (
                 <li
                   key={b.id}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded border p-3"
+                  className={`flex flex-wrap items-center justify-between gap-3 rounded border border-l-4 p-3 ${
+                    trainerColors(session.trainer).accent
+                  }`}
                 >
                   <div className="space-y-0.5">
-                    <p className="font-medium">
-                      {session.classes?.name_ro ?? "Sesiune"}
-                    </p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-medium">
+                        {session.classes?.name_ro ?? "Sesiune"}
+                      </p>
+                      {session.trainer ? (
+                        <TrainerBadge trainer={session.trainer} />
+                      ) : null}
+                    </div>
                     <p className="text-sm text-muted-foreground">
                       {formatStudio(session.start_at, "EEEE d MMM, HH:mm")}
                     </p>

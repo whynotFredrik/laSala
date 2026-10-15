@@ -11,10 +11,11 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { buttonVariants } from "@/components/ui/button"
 import { BookButton } from "@/components/member/book-button"
+import TrainerBadge from "@/components/trainer-badge"
 import { formatStudio } from "@/lib/booking/format"
 import { nextSevenDays, isUnlocked, studioDateISO } from "@/lib/booking/rules"
 import { requireUser } from "@/lib/auth/get-user"
-import { trainersForSex } from "@/lib/constants"
+import { trainerColors, trainersForSex } from "@/lib/constants"
 import { getActivePlan } from "@/lib/plans/active"
 import { isPlanUsable } from "@/lib/plans/rules"
 import { createClient } from "@/lib/supabase/server"
@@ -159,15 +160,22 @@ export default async function BookPage() {
                     return (
                       <li
                         key={s.id}
-                        className="flex items-center justify-between gap-3 rounded border p-3"
+                        className={`flex items-center justify-between gap-3 rounded border border-l-4 p-3 ${
+                          trainerColors(s.trainer).accent
+                        }`}
                       >
                         <div className="space-y-0.5">
-                          <p className="font-medium">
-                            {formatStudio(start, "HH:mm")}
-                            {s.classes?.name_ro
-                              ? ` · ${s.classes.name_ro}`
-                              : ""}
-                          </p>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="font-medium">
+                              {formatStudio(start, "HH:mm")}
+                              {s.classes?.name_ro
+                                ? ` · ${s.classes.name_ro}`
+                                : ""}
+                            </p>
+                            {s.trainer ? (
+                              <TrainerBadge trainer={s.trainer} />
+                            ) : null}
+                          </div>
                           <p className="text-xs text-muted-foreground">
                             {full
                               ? t("full")

@@ -9,15 +9,16 @@
 --
 --   * is_frozen_on(user, date): the one place that answers "is this
 --     member frozen on this studio date".
---   * book_session_for: refuses a session date inside a freeze
---     ('Membership frozen on session date' -> skip reason `frozen`).
+--   * bookings trigger: no row may be 'booked' on a frozen date, whichever
+--     function writes it — book_session (member), book_session_for (pins,
+--     admin), reschedule_booking. Message 'Membership frozen on session
+--     date' -> skip reason `frozen` / booking error `membership_frozen`.
 --   * freeze_membership: bookings already held inside the new freeze
 --     window (typically pins booked for next week, since a freeze starts
 --     at least 48h out) are cancelled through cancel_booking, so the
 --     session is refunded and the spot freed. cancel_booking's trigger
 --     records a recurring skip for each, which is harmless here.
 --
--- Member self-booking (`book_session`) is unchanged.
 -- Run after 0030_daily_agenda_recipients.sql.
 -- ================================================================
 
@@ -41,81 +42,37 @@ $$;
 
 revoke all on function public.is_frozen_on(uuid, date) from public;
 
--- ============ BOOK SESSION FOR (admin / service) — freeze-aware ============
+-- ============ NO ACTIVE BOOKING ON A FROZEN DAY ============
+-- One guard for every path that creates or moves a booking: book_session
+-- (member), book_session_for (pins, admin) and reschedule_booking all
+-- INSERT or UPDATE a row with status 'booked'. Raising here aborts the
+-- calling function's transaction, counters included.
 
-create or replace function public.book_session_for(
-  p_user_id uuid,
-  p_session_id uuid
-)
-returns public.bookings
+create or replace function public.reject_frozen_booking()
+returns trigger
 language plpgsql
 security definer
 set search_path = public, pg_temp
 as $$
 declare
-  v_session public.sessions;
-  v_plan public.plans;
-  v_iso_week text;
-  v_existing_same_day uuid;
-  v_booking public.bookings;
   v_session_date date;
 begin
-  if not (public.is_admin() or auth.role() = 'service_role') then
-    raise exception 'Admin only' using errcode = '42501';
-  end if;
+  select (s.start_at at time zone 'Europe/Bucharest')::date into v_session_date
+  from public.sessions s where s.id = new.session_id;
 
-  select * into v_session from public.sessions where id = p_session_id for update;
-  if not found then
-    raise exception 'Session not found' using errcode = 'P0002';
-  end if;
-
-  if v_session.booked_count >= v_session.capacity then
-    raise exception 'Session is full' using errcode = 'P0001';
-  end if;
-
-  v_session_date := (v_session.start_at at time zone 'Europe/Bucharest')::date;
-
-  if public.is_frozen_on(p_user_id, v_session_date) then
+  if public.is_frozen_on(new.user_id, v_session_date) then
     raise exception 'Membership frozen on session date' using errcode = 'P0001';
   end if;
-
-  v_plan := public.resolve_plan_for_booking(p_user_id, v_session_date);
-  if v_plan.id is null then
-    raise exception 'No active plan' using errcode = 'P0001';
-  end if;
-  if v_plan.end_date < v_session_date then
-    raise exception 'Plan expires before session date' using errcode = 'P0001';
-  end if;
-  if v_plan.sessions_used >= v_plan.sessions_total then
-    raise exception 'No sessions remaining on plan' using errcode = 'P0001';
-  end if;
-
-  select b.id into v_existing_same_day
-  from public.bookings b
-  join public.sessions s on s.id = b.session_id
-  where b.user_id = p_user_id
-    and b.status = 'booked'
-    and (s.start_at at time zone 'Europe/Bucharest')::date = v_session_date;
-  if v_existing_same_day is not null then
-    raise exception 'Already booked for this date' using errcode = 'P0001';
-  end if;
-
-  v_iso_week := to_char(v_session_date, 'IYYY-"W"IW');
-
-  insert into public.bookings (user_id, session_id, status, iso_week)
-  values (p_user_id, p_session_id, 'booked', v_iso_week)
-  returning * into v_booking;
-
-  update public.sessions set booked_count = booked_count + 1 where id = p_session_id;
-  update public.plans set sessions_used = sessions_used + 1 where id = v_plan.id;
-
-  return v_booking;
+  return new;
 end;
 $$;
 
-revoke all on function public.book_session_for(uuid, uuid) from public;
-grant execute on function public.book_session_for(uuid, uuid) to authenticated;
-grant execute on function public.book_session_for(uuid, uuid) to service_role;
+drop trigger if exists bookings_reject_frozen on public.bookings;
+create trigger bookings_reject_frozen
+  before insert or update of status, session_id on public.bookings
+  for each row
+  when (new.status = 'booked')
+  execute function public.reject_frozen_booking();
 
 -- ============ FREEZE MEMBERSHIP — cancel bookings inside the window ============
 

@@ -172,6 +172,7 @@
     "plan_expires_before_session": "Abonamentul tău expiră înainte de această sesiune.",
     "plan_exhausted": "Nu mai ai sesiuni disponibile pe abonament. Solicită următorul din pagina Planuri.",
     "already_booked_today": "Ai deja o rezervare pentru această zi.",
+    "membership_frozen": "Abonamentul este înghețat în această zi.",
     "booking_not_found": "Rezervarea nu a fost găsită.",
     "booking_not_active": "Rezervarea nu mai este activă.",
     "forbidden": "Nu ai permisiunea pentru această acțiune.",

@@ -598,6 +598,12 @@
   "adminSessions": {
     "title": "Sesiuni",
     "subtitle": "Calendar pentru următoarele {days} de zile, cu prezența pe sesiune. Sesiunile și rezervările recurente se generează automat în fiecare dimineață.",
+    "dayNav": "Navigare între zile",
+    "previousDay": "Ziua anterioară",
+    "nextDay": "Ziua următoare",
+    "today": "Astăzi",
+    "backToToday": "Înapoi la azi",
+    "dayOf": "ziua {day} din {total}",
     "sessionsCount": "sesiuni",
     "noSessions": "Nicio sesiune.",
     "noTrainer": "Fără antrenor",

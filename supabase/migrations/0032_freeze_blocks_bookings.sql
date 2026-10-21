@@ -19,7 +19,7 @@
 --     session is refunded and the spot freed. cancel_booking's trigger
 --     records a recurring skip for each, which is harmless here.
 --
--- Run after 0030_daily_agenda_recipients.sql.
+-- Run after 0031_audit_log.sql (PR #10; independent of it, numbered after it).
 -- ================================================================
 
 begin;

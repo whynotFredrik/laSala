@@ -16,8 +16,9 @@ import { createClient } from "@/lib/supabase/server"
 import { FreezeForm } from "./freeze-form"
 
 /**
- * Computes how many freeze days the user has used in the last 6 months and
- * renders the form with the remaining allowance.
+ * Shows the freeze allowance and renders the form. The remaining days come
+ * from `freeze_days_remaining` (migration 0033), which applies an admin
+ * override when one is set; "used" is the plain 6-month count.
  */
 export async function FreezeSection({ userId }: { userId: string }) {
   const t = await getTranslations("freeze")
@@ -25,29 +26,48 @@ export async function FreezeSection({ userId }: { userId: string }) {
 
   const sixMonthsAgo = subDays(new Date(), 180).toISOString().slice(0, 10)
 
-  const { data: periods } = await supabase
-    .from("freeze_periods")
-    .select("start_date, end_date, duration_days")
-    .eq("user_id", userId)
-    .gte("start_date", sixMonthsAgo)
-    .order("start_date", { ascending: false })
+  const [{ data: periods }, { data: remainingDays }, { data: override }] =
+    await Promise.all([
+      supabase
+        .from("freeze_periods")
+        .select("start_date, end_date, duration_days")
+        .eq("user_id", userId)
+        .gte("start_date", sixMonthsAgo)
+        .order("start_date", { ascending: false }),
+      supabase.rpc("freeze_days_remaining", { p_user_id: userId }),
+      supabase
+        .from("freeze_allowance_overrides")
+        .select("expires_on")
+        .eq("user_id", userId)
+        .gte("expires_on", new Date().toISOString().slice(0, 10))
+        .maybeSingle(),
+    ])
 
   const used = (periods ?? []).reduce(
     (acc, p) => acc + (p.duration_days ?? 0),
     0,
   )
-  const remaining = Math.max(RULES.FREEZE_TOTAL_DAYS_PER_6_MONTHS - used, 0)
+  const remaining =
+    remainingDays ??
+    Math.max(RULES.FREEZE_TOTAL_DAYS_PER_6_MONTHS - used, 0)
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>{t("title")}</CardTitle>
         <CardDescription>
-          {t("allowance", {
-            used,
-            total: RULES.FREEZE_TOTAL_DAYS_PER_6_MONTHS,
-            remaining,
-          })}
+          {override
+            ? t("allowanceOverride", {
+                remaining,
+                date: format(new Date(override.expires_on), "d MMM yyyy", {
+                  locale: ro,
+                }),
+              })
+            : t("allowance", {
+                used,
+                total: RULES.FREEZE_TOTAL_DAYS_PER_6_MONTHS,
+                remaining,
+              })}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

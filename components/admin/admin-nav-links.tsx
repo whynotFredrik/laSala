@@ -11,6 +11,7 @@ const LINKS = [
   { href: "/admin/users", key: "users" },
   { href: "/admin/plan-requests", key: "planRequests" },
   { href: "/admin/sessions", key: "sessions" },
+  { href: "/admin/freezes", key: "freezes" },
   { href: "/admin/schedule", key: "schedule" },
   { href: "/admin/plan-tiers", key: "planTiers" },
   { href: "/admin/gdpr", key: "gdpr" },

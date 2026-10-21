@@ -44,7 +44,7 @@ The studio's actual booking rules. These are encoded in Postgres functions and i
 - **Members are not assigned to trainers.** Which sessions a member sees follows from `profiles.sex` (men → Eugen, women → Marina + Ana; `trainersForSex` in `lib/constants.ts`).
 - **Cancellation:** allowed up to 3 hours before `session.start_at`. Within 3 hours, the booking is locked.
 - **Reschedule:** counts increment in `bookings.reschedule_count_iso_week`; cap is 2 per ISO week.
-- **Freeze:** member submits a freeze request with `start_date` (must be ≥48h from now) and `duration_days` (3–14). Freezing extends `plan.end_date` by `duration_days`. Total frozen days in any rolling 6-month window may not exceed 14.
+- **Freeze:** member submits a freeze request with `start_date` (must be ≥48h from now) and `duration_days` (3–14). Freezing extends `plan.end_date` by `duration_days` and cancels the member's bookings inside the window; no booking (member, pin or admin) can be made on a frozen day (trigger, migration 0032). Total frozen days in any rolling 6-month window may not exceed 14. Admins (`/admin/freezes`) can allocate a freeze without the 48h notice and set a member's remaining days: an override in `freeze_allowance_overrides` that replaces the 14/6-month rule for 6 months or until cleared (`freeze_days_remaining`, migration 0033).
 
 ## Code style
 

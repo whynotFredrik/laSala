@@ -340,6 +340,45 @@ export type Database = {
           },
         ]
       }
+      freeze_allowance_overrides: {
+        Row: {
+          expires_on: string
+          remaining_days: number
+          set_at: string
+          set_by: string | null
+          user_id: string
+        }
+        Insert: {
+          expires_on: string
+          remaining_days: number
+          set_at?: string
+          set_by?: string | null
+          user_id: string
+        }
+        Update: {
+          expires_on?: string
+          remaining_days?: number
+          set_at?: string
+          set_by?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "freeze_allowance_overrides_set_by_fkey"
+            columns: ["set_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freeze_allowance_overrides_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       freeze_periods: {
         Row: {
           created_at: string
@@ -1056,6 +1095,39 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_clear_freeze_override: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
+      admin_freeze_membership: {
+        Args: { p_duration_days: number; p_start_date: string; p_user_id: string }
+        Returns: {
+          created_at: string
+          duration_days: number | null
+          end_date: string
+          id: string
+          plan_id: string
+          start_date: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "freeze_periods"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      admin_freeze_overview: {
+        Args: never
+        Returns: {
+          email: string
+          full_name: string | null
+          override_expires_on: string | null
+          override_remaining_days: number | null
+          remaining_days: number
+          user_id: string
+        }[]
+      }
       admin_grant_plan: {
         Args: {
           p_sessions_remaining?: number
@@ -1084,6 +1156,22 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "plans"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      admin_set_freeze_remaining: {
+        Args: { p_remaining_days: number; p_user_id: string }
+        Returns: {
+          expires_on: string
+          remaining_days: number
+          set_at: string
+          set_by: string | null
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "freeze_allowance_overrides"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -1184,6 +1272,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      freeze_days_remaining: { Args: { p_user_id: string }; Returns: number }
       freeze_membership: {
         Args: { p_duration_days: number; p_start_date: string }
         Returns: {

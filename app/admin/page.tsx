@@ -1,4 +1,5 @@
 import { startOfMonth } from "date-fns"
+import Link from "next/link"
 import { getTranslations } from "next-intl/server"
 
 import { Button } from "@/components/ui/button"
@@ -13,6 +14,13 @@ import { createClient } from "@/lib/supabase/server"
 
 import { enterMemberPreviewAction } from "./actions"
 import AgendaRecipients from "./agenda-recipients"
+
+type StatKey =
+  | "members"
+  | "activePlans"
+  | "bookingsThisMonth"
+  | "activeFreezes"
+  | "pendingRequests"
 
 export default async function AdminDashboard() {
   const supabase = await createClient()
@@ -58,13 +66,17 @@ export default async function AdminDashboard() {
       .order("created_at", { ascending: true }),
   ])
 
-  const stats = [
-    { key: "members", value: members ?? 0 },
+  const stats: { key: StatKey; value: number; href?: string }[] = [
+    { key: "members", value: members ?? 0, href: "/admin/users" },
     { key: "activePlans", value: activePlans ?? 0 },
     { key: "bookingsThisMonth", value: bookingsThisMonth ?? 0 },
-    { key: "activeFreezes", value: activeFreezes ?? 0 },
-    { key: "pendingRequests", value: pendingRequests ?? 0 },
-  ] as const
+    { key: "activeFreezes", value: activeFreezes ?? 0, href: "/admin/freezes" },
+    {
+      key: "pendingRequests",
+      value: pendingRequests ?? 0,
+      href: "/admin/plan-requests",
+    },
+  ]
 
   return (
     <div className="space-y-6">
@@ -80,15 +92,28 @@ export default async function AdminDashboard() {
         </form>
       </header>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {stats.map((s) => (
-          <Card key={s.key}>
-            <CardHeader className="pb-2">
-              <CardDescription>{t(s.key)}</CardDescription>
-              <CardTitle className="text-3xl">{s.value}</CardTitle>
-            </CardHeader>
-            <CardContent />
-          </Card>
-        ))}
+        {stats.map((s) => {
+          const card = (
+            <Card
+              className={
+                s.href ? "h-full transition-colors hover:bg-muted/50" : undefined
+              }
+            >
+              <CardHeader className="pb-2">
+                <CardDescription>{t(s.key)}</CardDescription>
+                <CardTitle className="text-3xl">{s.value}</CardTitle>
+              </CardHeader>
+              <CardContent />
+            </Card>
+          )
+          return s.href ? (
+            <Link key={s.key} href={s.href}>
+              {card}
+            </Link>
+          ) : (
+            <div key={s.key}>{card}</div>
+          )
+        })}
       </div>
       <Card>
         <CardHeader>

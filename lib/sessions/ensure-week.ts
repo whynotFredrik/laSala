@@ -59,10 +59,44 @@ export async function ensureSessionsForWeek(
 
   const weekStartLocal = studioWeekStart(anchor)
   const weekStart = formatISO(weekStartLocal, { representation: "date" })
+  const weekEnd = formatISO(addDays(weekStartLocal, 6), {
+    representation: "date",
+  })
 
-  let created = 0
-  let skipped = 0
-  const sessionIds: string[] = []
+  // One read for the whole week instead of one per slot: the cron used to
+  // run past its time limit doing hundreds of sequential round trips.
+  const { data: weekRows, error: weekErr } = await service
+    .from("sessions")
+    .select("id, session_date, start_at, trainer, schedule_template_id")
+    .gte("session_date", weekStart)
+    .lte("session_date", weekEnd)
+  if (weekErr) throw new Error(`sessions_load_failed: ${weekErr.message}`)
+
+  // Existing session at this (date, time, trainer)? First match wins, so a
+  // pre-existing duplicate never falls through to insert.
+  const existingByKey = new Map<
+    string,
+    { id: string; schedule_template_id: string | null }
+  >()
+  for (const row of weekRows ?? []) {
+    const key = sessionKey(row.session_date, new Date(row.start_at), row.trainer)
+    if (!existingByKey.has(key)) existingByKey.set(key, row)
+  }
+
+  type Insert = {
+    class_id: string | null
+    schedule_template_id: string
+    session_date: string
+    start_at: string
+    end_at: string
+    capacity: number
+    unlock_at: string
+    trainer: string | null
+  }
+
+  // Per template slot, in template order: an existing id or a pending insert.
+  const plan: Array<{ id: string } | { insert: Insert; key: string }> = []
+  const heals: Array<{ id: string; templateId: string }> = []
 
   for (const slot of template as ScheduleSlot[]) {
     const dayLocal = addDays(weekStartLocal, slot.day_of_week)
@@ -75,36 +109,19 @@ export async function ensureSessionsForWeek(
     // Pass the real instant: unlockAtFor converts to studio time itself.
     const unlockAt = unlockAtFor(startAt)
 
-    // Existing session at this (date, time, trainer)? `.is(null)` for null
-    // trainers — Postgres treats NULL as distinct. We take a list (not
-    // maybeSingle) so a pre-existing duplicate never falls through to insert.
-    let existsQuery = service
-      .from("sessions")
-      .select("id, schedule_template_id")
-      .eq("session_date", sessionDate)
-      .eq("start_at", startAt.toISOString())
-      .limit(1)
-    existsQuery = slot.trainer
-      ? existsQuery.eq("trainer", slot.trainer)
-      : existsQuery.is("trainer", null)
-    const { data: existingRows } = await existsQuery
-    const existing = existingRows?.[0] ?? null
-
+    const key = sessionKey(sessionDate, startAt, slot.trainer)
+    const existing = existingByKey.get(key)
     if (existing) {
       if (existing.schedule_template_id !== slot.id) {
-        await service
-          .from("sessions")
-          .update({ schedule_template_id: slot.id })
-          .eq("id", existing.id)
+        heals.push({ id: existing.id, templateId: slot.id })
       }
-      sessionIds.push(existing.id)
-      skipped++
+      plan.push({ id: existing.id })
       continue
     }
 
-    const { data: inserted, error: insertErr } = await service
-      .from("sessions")
-      .insert({
+    plan.push({
+      key,
+      insert: {
         class_id: slot.class_id,
         schedule_template_id: slot.id,
         session_date: sessionDate,
@@ -113,15 +130,59 @@ export async function ensureSessionsForWeek(
         capacity: slot.capacity,
         unlock_at: unlockAt.toISOString(),
         trainer: slot.trainer,
-      })
-      .select("id")
-      .single()
+      },
+    })
+  }
+
+  // Rows generated before migration 0020 still lack their template link.
+  // Rare (one-off healing), so one update per row is fine.
+  await Promise.all(
+    heals.map(({ id, templateId }) =>
+      service
+        .from("sessions")
+        .update({ schedule_template_id: templateId })
+        .eq("id", id),
+    ),
+  )
+
+  const inserts = plan.flatMap((p) => ("insert" in p ? [p.insert] : []))
+  const insertedByKey = new Map<string, string>()
+  if (inserts.length > 0) {
+    const { data: inserted, error: insertErr } = await service
+      .from("sessions")
+      .insert(inserts)
+      .select("id, session_date, start_at, trainer")
     if (insertErr || !inserted) {
       throw new Error(`session_insert_failed: ${insertErr?.message ?? ""}`)
     }
-    sessionIds.push(inserted.id)
-    created++
+    for (const row of inserted) {
+      insertedByKey.set(
+        sessionKey(row.session_date, new Date(row.start_at), row.trainer),
+        row.id,
+      )
+    }
   }
 
+  const sessionIds: string[] = []
+  for (const p of plan) {
+    const id = "id" in p ? p.id : insertedByKey.get(p.key)
+    if (id) sessionIds.push(id)
+  }
+  const created = inserts.length
+  const skipped = plan.length - created
+
   return { weekStart, created, skipped, sessionIds }
+}
+
+/**
+ * Identity of a session slot: studio date, start instant, trainer. The
+ * instant is compared as epoch millis because Postgres returns
+ * `+00:00` offsets while we build `Z` ISO strings.
+ */
+function sessionKey(
+  sessionDate: string,
+  startAt: Date,
+  trainer: string | null,
+): string {
+  return `${sessionDate}|${startAt.getTime()}|${trainer ?? ""}`
 }

@@ -18,9 +18,13 @@ export default async function HomePage() {
   const supabase = await createClient()
   const t = await getTranslations("home")
 
-  // Active plan and whether a renewal request is already pending — drives
-  // the renewal banner.
-  const [plan, { data: pendingRequest }] =
+  // Independent reads, one round trip: active plan and whether a renewal
+  // request is already pending (drive the renewal banner), plus the next 3
+  // upcoming bookings (status = booked AND session start in the future).
+  // `!inner` makes the foreign-table filter actually exclude rows whose
+  // joined session is in the past — without it, PostgREST keeps the booking
+  // row and just nulls out the session.
+  const [plan, { data: pendingRequest }, { data: bookings }] =
     await Promise.all([
       getActivePlan(supabase, profile.id),
       supabase
@@ -29,22 +33,17 @@ export default async function HomePage() {
         .eq("user_id", profile.id)
         .eq("status", "pending")
         .maybeSingle(),
+      supabase
+        .from("bookings")
+        .select(
+          "*, sessions!inner(id, start_at, end_at, trainer, classes(name_ro))",
+        )
+        .eq("user_id", profile.id)
+        .eq("status", "booked")
+        .gte("sessions.start_at", new Date().toISOString())
+        .order("start_at", { referencedTable: "sessions", ascending: true })
+        .limit(3),
     ])
-
-  // Next 3 upcoming bookings (status = booked AND session start in the future).
-  // `!inner` makes the foreign-table filter actually exclude rows whose
-  // joined session is in the past — without it, PostgREST keeps the booking
-  // row and just nulls out the session.
-  const { data: bookings } = await supabase
-    .from("bookings")
-    .select(
-      "*, sessions!inner(id, start_at, end_at, trainer, classes(name_ro))",
-    )
-    .eq("user_id", profile.id)
-    .eq("status", "booked")
-    .gte("sessions.start_at", new Date().toISOString())
-    .order("start_at", { referencedTable: "sessions", ascending: true })
-    .limit(3)
 
   const firstName = profile.full_name?.split(" ")[0] ?? ""
 

@@ -37,15 +37,6 @@ export default async function BookPage() {
   const firstDay = days[0]!
   const lastDay = days[days.length - 1]!
 
-  // Can the member actually book? No plan, or an exhausted/expired one →
-  // say so up front, with the way out.
-  const plan = await getActivePlan(supabase, user.id)
-  const planProblem: "none" | "exhausted" | null = !plan
-    ? "none"
-    : !isPlanUsable(plan, studioDateISO())
-      ? "exhausted"
-      : null
-
   // Pull every session in the 7-day window, filtered by the trainers
   // that serve the member's sex (men → Eugen, women → Marina + Ana).
   // Members are not assigned to an individual trainer. A profile with
@@ -66,14 +57,26 @@ export default async function BookPage() {
     sessionsQuery = sessionsQuery.in("trainer", [...visibleTrainers])
   }
 
-  const { data: sessionsRaw } = await sessionsQuery
+  // The three reads are independent — run them in one round trip. The
+  // user's currently-booked session ids are used to disable those buttons.
+  const [plan, { data: sessionsRaw }, { data: myBookings }] =
+    await Promise.all([
+      getActivePlan(supabase, user.id),
+      sessionsQuery,
+      supabase
+        .from("bookings")
+        .select("session_id")
+        .eq("user_id", user.id)
+        .eq("status", "booked"),
+    ])
 
-  // The user's currently-booked session ids — used to disable those buttons.
-  const { data: myBookings } = await supabase
-    .from("bookings")
-    .select("session_id")
-    .eq("user_id", user.id)
-    .eq("status", "booked")
+  // Can the member actually book? No plan, or an exhausted/expired one →
+  // say so up front, with the way out.
+  const planProblem: "none" | "exhausted" | null = !plan
+    ? "none"
+    : !isPlanUsable(plan, studioDateISO())
+      ? "exhausted"
+      : null
 
   const bookedIds = new Set((myBookings ?? []).map((b) => b.session_id))
   const sessions = (sessionsRaw ?? []) as SessionWithClass[]

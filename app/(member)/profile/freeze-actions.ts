@@ -1,9 +1,11 @@
 "use server"
 
+import { addDays, formatISO, parseISO } from "date-fns"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 
 import { RULES } from "@/lib/constants"
+import { scheduleCalendarSync } from "@/lib/google/schedule-sync"
 import { createClient } from "@/lib/supabase/server"
 
 export type FreezeState =
@@ -25,7 +27,8 @@ const freezeSchema = z.object({
 /**
  * Wraps the Postgres `freeze_membership` function. The function does the
  * 48-hour notice check, the 14-days-per-6-months allowance check, inserts
- * the freeze period, and extends the plan's end_date — atomically.
+ * the freeze period, extends the plan's end_date and cancels the bookings
+ * that fall inside the freeze window (migration 0031) — atomically.
  */
 export async function freezeMembershipAction(
   _prev: FreezeState,
@@ -41,6 +44,25 @@ export async function freezeMembershipAction(
   }
 
   const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { status: "error", message: "unknown" }
+
+  // Bookings the freeze will cancel, so their calendar events get updated.
+  const endDate = formatISO(
+    addDays(parseISO(parsed.data.startDate), parsed.data.durationDays - 1),
+    { representation: "date" },
+  )
+  const { data: inWindow } = await supabase
+    .from("bookings")
+    .select("session_id, sessions!inner(session_date)")
+    .eq("user_id", user.id)
+    .eq("status", "booked")
+    .gte("sessions.session_date", parsed.data.startDate)
+    .lte("sessions.session_date", endDate)
+
   const { error } = await supabase.rpc("freeze_membership", {
     p_start_date: parsed.data.startDate,
     p_duration_days: parsed.data.durationDays,
@@ -63,7 +85,11 @@ export async function freezeMembershipAction(
     return { status: "error", message: "unknown" }
   }
 
+  scheduleCalendarSync((inWindow ?? []).map((b) => b.session_id))
+
   revalidatePath("/profile")
   revalidatePath("/home")
+  revalidatePath("/book")
   return { status: "ok" }
 }
+

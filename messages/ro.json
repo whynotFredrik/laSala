@@ -103,6 +103,7 @@
       "noActivePlan": "nu ai abonament activ",
       "planExpired": "abonamentul expiră înainte de sesiune",
       "noSessionsLeft": "nu mai ai sesiuni pe abonament",
+      "frozen": "abonamentul este înghețat în ziua respectivă",
       "notAllowed": "eroare de sistem",
       "unknown": "eroare necunoscută"
     }
@@ -206,7 +207,7 @@
     "startDate": "Data de început",
     "startDateHint": "Trebuie să fie cu cel puțin 48 de ore în avans.",
     "duration": "Durată (zile)",
-    "durationHint": "Între 3 și 14 zile.",
+    "durationHint": "Între 3 și 14 zile. Rezervările din această perioadă, inclusiv cele recurente, se anulează și sesiunile revin pe abonament.",
     "submit": "Trimite cerere",
     "submittedTitle": "Cerere de înghețare înregistrată.",
     "noAllowanceTitle": "Nu mai ai zile disponibile",

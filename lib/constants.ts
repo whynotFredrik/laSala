@@ -99,3 +99,37 @@ export const BANK_DETAILS = {
   swift: "",
   reference: "ABONAMENT {plan} - {member_name}",
 } as const
+
+/**
+ * Per-trainer colors, used wherever a session time is shown so members and
+ * admins can tell at a glance whose slot is whose. Full class strings (not
+ * built dynamically) so Tailwind picks them up.
+ */
+export const TRAINER_COLORS: Record<
+  Trainer,
+  { badge: string; accent: string }
+> = {
+  Eugen: {
+    badge: "bg-blue-100 text-blue-900 dark:bg-blue-900/30 dark:text-blue-200",
+    accent: "border-l-blue-500",
+  },
+  Marina: {
+    badge:
+      "bg-fuchsia-100 text-fuchsia-900 dark:bg-fuchsia-900/30 dark:text-fuchsia-200",
+    accent: "border-l-fuchsia-500",
+  },
+  Ana: {
+    badge:
+      "bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-200",
+    accent: "border-l-amber-500",
+  },
+}
+
+export function trainerColors(
+  trainer: string | null | undefined,
+): { badge: string; accent: string } {
+  if (trainer && trainer in TRAINER_COLORS) {
+    return TRAINER_COLORS[trainer as Trainer]
+  }
+  return { badge: "bg-muted text-muted-foreground", accent: "border-l-border" }
+}

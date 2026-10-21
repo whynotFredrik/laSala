@@ -38,7 +38,7 @@ export default async function HomePage() {
   const { data: bookings } = await supabase
     .from("bookings")
     .select(
-      "*, sessions!inner(id, start_at, end_at, classes(name_ro))",
+      "*, sessions!inner(id, start_at, end_at, trainer, classes(name_ro))",
     )
     .eq("user_id", profile.id)
     .eq("status", "booked")

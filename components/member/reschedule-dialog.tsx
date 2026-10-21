@@ -14,7 +14,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import TrainerBadge from "@/components/trainer-badge"
 import { formatStudio } from "@/lib/booking/format"
+import { trainerColors } from "@/lib/constants"
 import { rescheduleBookingAction } from "@/app/(member)/book/actions"
 
 export type CandidateSession = {
@@ -24,6 +26,7 @@ export type CandidateSession = {
   spots_left: number
   full: boolean
   class_name: string | null
+  trainer: string | null
 }
 
 /**
@@ -103,7 +106,11 @@ export function RescheduleDialog({
                     {list.map((c) => {
                       return (
                         <li key={c.id}>
-                          <label className="flex items-center gap-2 rounded border p-2 text-sm hover:bg-muted/50">
+                          <label
+                            className={`flex items-center gap-2 rounded border border-l-4 p-2 text-sm hover:bg-muted/50 ${
+                              trainerColors(c.trainer).accent
+                            }`}
+                          >
                             <input
                               type="radio"
                               name="reschedule-target"
@@ -119,6 +126,9 @@ export function RescheduleDialog({
                               <span className="text-muted-foreground">
                                 · {c.class_name}
                               </span>
+                            ) : null}
+                            {c.trainer ? (
+                              <TrainerBadge trainer={c.trainer} />
                             ) : null}
                             <span className="ml-auto text-xs text-muted-foreground">
                               {c.full

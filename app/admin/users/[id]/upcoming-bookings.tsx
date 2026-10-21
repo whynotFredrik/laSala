@@ -4,6 +4,7 @@ import { useState, useTransition } from "react"
 import { useTranslations } from "next-intl"
 import { toast } from "sonner"
 
+import TrainerBadge from "@/components/trainer-badge"
 import { Button } from "@/components/ui/button"
 import {
   Select,
@@ -154,9 +155,7 @@ export function UpcomingBookings({
                   {formatStudio(b.startAt, "EEEE d MMM, HH:mm")}
                 </p>
                 {b.trainer ? (
-                  <span className="rounded-full bg-muted px-2 py-0.5 text-xs">
-                    {b.trainer}
-                  </span>
+                  <TrainerBadge trainer={b.trainer} />
                 ) : null}
               </div>
               <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto]">

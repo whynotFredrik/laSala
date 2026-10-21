@@ -3,6 +3,7 @@ import { toZonedTime } from "date-fns-tz"
 import { ExternalLink } from "lucide-react"
 import { getTranslations } from "next-intl/server"
 
+import TrainerBadge from "@/components/trainer-badge"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
   Card,
@@ -13,6 +14,7 @@ import {
 } from "@/components/ui/card"
 import { formatStudio } from "@/lib/booking/format"
 import { STUDIO_TZ } from "@/lib/booking/rules"
+import { trainerColors } from "@/lib/constants"
 import { isCalendarConfigured } from "@/lib/google/config"
 import { createClient } from "@/lib/supabase/server"
 
@@ -23,20 +25,6 @@ const VIEW_DAYS = 14
 // The calendar sync action invoked from this page pushes events to Google
 // Calendar via `after()`; give it room beyond the default 10s.
 export const maxDuration = 60
-
-/**
- * Per-trainer chip colors so the admin can scan a busy day and tell at a
- * glance whose slot is whose. Keep these in sync with any future trainer
- * additions.
- */
-const TRAINER_BADGE: Record<string, string> = {
-  Eugen:
-    "bg-blue-100 text-blue-900 dark:bg-blue-900/30 dark:text-blue-200",
-  Marina:
-    "bg-fuchsia-100 text-fuchsia-900 dark:bg-fuchsia-900/30 dark:text-fuchsia-200",
-  Ana:
-    "bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-200",
-}
 
 export default async function AdminSessionsPage() {
   const supabase = await createClient()
@@ -135,21 +123,19 @@ export default async function AdminSessionsPage() {
                         (b) => b.status === "booked",
                       ) ?? []
                     return (
-                      <li key={s.id} className="rounded border p-3">
+                      <li
+                        key={s.id}
+                        className={`rounded border border-l-4 p-3 ${
+                          trainerColors(s.trainer).accent
+                        }`}
+                      >
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex flex-wrap items-center gap-2">
                             <p className="font-medium">
                               {formatStudio(s.start_at, "HH:mm")}
                             </p>
                             {s.trainer ? (
-                              <span
-                                className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                                  TRAINER_BADGE[s.trainer] ??
-                                  "bg-muted text-muted-foreground"
-                                }`}
-                              >
-                                {s.trainer}
-                              </span>
+                              <TrainerBadge trainer={s.trainer} />
                             ) : (
                               <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                                 {t("noTrainer")}

@@ -16,6 +16,7 @@ const MAP: Array<{ test: RegExp; key: string }> = [
   { test: /session is full/i, key: "session_full" },
   { test: /new session is full/i, key: "session_full" },
   { test: /no active plan/i, key: "no_active_plan" },
+  { test: /membership frozen/i, key: "membership_frozen" },
   { test: /plan expires before/i, key: "plan_expires_before_session" },
   { test: /no sessions remaining/i, key: "plan_exhausted" },
   { test: /already booked for this date/i, key: "already_booked_today" },

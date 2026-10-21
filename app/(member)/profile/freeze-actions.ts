@@ -82,6 +82,9 @@ export async function freezeMembershipAction(
     if (msg.includes("allowance exceeded")) {
       return { status: "error", message: "freeze_allowance_exceeded" }
     }
+    if (msg.includes("overlaps") || msg.includes("freeze_no_overlap")) {
+      return { status: "error", message: "freeze_overlap" }
+    }
     return { status: "error", message: "unknown" }
   }
 

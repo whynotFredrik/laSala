@@ -1,6 +1,7 @@
 import "server-only"
 
 import { cookies } from "next/headers"
+import { cache } from "react"
 import { redirect } from "next/navigation"
 
 import { createClient } from "@/lib/supabase/server"
@@ -14,14 +15,30 @@ type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"]
  * Returns the authenticated Supabase user or null. Server-side only — uses
  * `getUser()` which validates the JWT against the auth server, not the
  * cached session (which a client could forge).
+ *
+ * Wrapped in React `cache()` so the layout, nav and page of one request
+ * share a single auth round trip. The memo is per server request, never
+ * across requests or users; outside a render (server actions, route
+ * handlers) it simply runs every time.
  */
-export async function getUser() {
+export const getUser = cache(async () => {
   const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
   return user
-}
+})
+
+/** The profile row for `userId`, memoized per request like `getUser`. */
+const getProfile = cache(async (userId: string) => {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", userId)
+    .single()
+  return data
+})
 
 /**
  * Returns the auth user joined to their profile row. Throws (via redirect)
@@ -34,20 +51,13 @@ export async function requireUser(): Promise<{
   user: NonNullable<Awaited<ReturnType<typeof getUser>>>
   profile: ProfileRow
 }> {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getUser()
 
   if (!user) {
     redirect("/sign-in")
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .single()
+  const profile = await getProfile(user.id)
 
   if (!profile) {
     // Trigger should have created this; if it didn't, something is wrong.
@@ -96,17 +106,10 @@ export async function requireMember() {
  * members (cookie absent or user is genuinely a member).
  */
 export async function isAdminPreviewing(): Promise<boolean> {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return false
   const cookieStore = await cookies()
   if (cookieStore.get(ADMIN_PREVIEW_COOKIE)?.value !== "1") return false
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single()
+  const user = await getUser()
+  if (!user) return false
+  const profile = await getProfile(user.id)
   return profile?.role === "admin"
 }

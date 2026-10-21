@@ -12,8 +12,13 @@ import type { Database } from "@/lib/supabase/database.types"
  *
  * The `server-only` import causes the build to fail if this module is
  * accidentally imported into client code.
+ *
+ * Pass `actorId` (the verified admin's user id) when the client writes on
+ * an admin's behalf: it is sent as `x-actor-id`, which the audit triggers
+ * (migration 0031) record as who made the change. Without it, service-role
+ * writes show up as automatic (cron / sync).
  */
-export function createServiceClient() {
+export function createServiceClient(opts: { actorId?: string } = {}) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
 
@@ -28,5 +33,8 @@ export function createServiceClient() {
       persistSession: false,
       autoRefreshToken: false,
     },
+    global: opts.actorId
+      ? { headers: { "x-actor-id": opts.actorId } }
+      : undefined,
   })
 }

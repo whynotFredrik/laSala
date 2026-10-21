@@ -46,8 +46,8 @@ export async function adjustPlanAction(
     return { status: "error", message: "used_exceeds_total" }
   }
 
-  await requireAdmin()
-  const service = createServiceClient()
+  const { user } = await requireAdmin()
+  const service = createServiceClient({ actorId: user.id })
 
   const { error } = await service
     .from("plans")

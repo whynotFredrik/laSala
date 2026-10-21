@@ -36,7 +36,7 @@ export async function addRecurringAction(input: {
   if (!parsed.success) return { status: "error", message: "invalid_input" }
 
   const { user: admin } = await requireAdmin()
-  const service = createServiceClient()
+  const service = createServiceClient({ actorId: admin.id })
 
   const { error } = await service.from("recurring_bookings").insert({
     user_id: parsed.data.userId,
@@ -70,8 +70,8 @@ export async function removeRecurringAction(input: {
   recurringId: string
   userId: string
 }) {
-  await requireAdmin()
-  const service = createServiceClient()
+  const { user } = await requireAdmin()
+  const service = createServiceClient({ actorId: user.id })
   await service
     .from("recurring_bookings")
     .update({ is_active: false })

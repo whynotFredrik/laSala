@@ -12,6 +12,7 @@ const LINKS = [
   { href: "/admin/plan-requests", key: "planRequests" },
   { href: "/admin/sessions", key: "sessions" },
   { href: "/admin/schedule", key: "schedule" },
+  { href: "/admin/history", key: "history" },
   { href: "/admin/plan-tiers", key: "planTiers" },
   { href: "/admin/gdpr", key: "gdpr" },
 ] as const

@@ -43,8 +43,8 @@ export async function upsertScheduleSlotAction(input: {
     return { status: "error", message: "invalid_input" }
   }
 
-  await requireAdmin()
-  const service = createServiceClient()
+  const { user } = await requireAdmin()
+  const service = createServiceClient({ actorId: user.id })
 
   const row = {
     day_of_week: parsed.data.dayOfWeek,
@@ -72,8 +72,8 @@ export async function upsertScheduleSlotAction(input: {
 }
 
 export async function deleteScheduleSlotAction(id: string) {
-  await requireAdmin()
-  const service = createServiceClient()
+  const { user } = await requireAdmin()
+  const service = createServiceClient({ actorId: user.id })
   await service.from("schedule_template").delete().eq("id", id)
   revalidatePath("/admin/schedule")
 }

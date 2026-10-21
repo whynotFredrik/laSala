@@ -338,6 +338,7 @@
     "planRequests": "Cereri",
     "sessions": "Sesiuni",
     "schedule": "Orar",
+    "history": "Istoric",
     "planTiers": "Tarife",
     "gdpr": "GDPR",
     "memberView": "Vedere membru"
@@ -351,6 +352,83 @@
     "activeFreezes": "Înghețări active",
     "pendingRequests": "Cereri de planuri în așteptare",
     "enterMemberPreview": "Vedere client"
+  },
+  "adminHistory": {
+    "title": "Istoric modificări",
+    "subtitle": "Cine a schimbat ce și când: rezervări, orar, programări recurente, abonamente. Cele mai noi sus.",
+    "types": {
+      "all": "Toate",
+      "bookings": "Rezervări",
+      "schedule": "Orar și recurente",
+      "plans": "Abonamente"
+    },
+    "day": "Ziua",
+    "apply": "Filtrează",
+    "clearDay": "Toate zilele",
+    "filteredMember": "Doar modificările pentru {name}.",
+    "showAll": "Vezi toți membrii",
+    "empty": "Nicio modificare pentru filtrul ales.",
+    "newer": "← Mai noi",
+    "older": "Mai vechi →",
+    "deletedMember": "Membru șters",
+    "byAutomatic": "Automat (sync zilnic / rezervare recurentă)",
+    "byMember": "de membru",
+    "byAdmin": "de admin: {name}",
+    "yes": "da",
+    "no": "nu",
+    "slotCapacity": "{capacity} locuri",
+    "slotDuration": "{minutes} min",
+    "slotDisabled": "dezactivat",
+    "booking": {
+      "booked": "Rezervare: {session}",
+      "cancelled": "Rezervare anulată: {session}",
+      "moved": "Rezervare mutată: {from} → {to}",
+      "statusChanged": "Rezervarea din {session}: {from} → {to}"
+    },
+    "status": {
+      "booked": "rezervat",
+      "cancelled": "anulat",
+      "completed": "prezent",
+      "no_show": "absent"
+    },
+    "slot": {
+      "created": "Slot nou în orar: {slot}",
+      "updated": "Slot modificat în orar: {from} → {to}",
+      "deleted": "Slot șters din orar: {slot}"
+    },
+    "recurring": {
+      "created": "Programare recurentă adăugată: {slot}",
+      "removed": "Programare recurentă eliminată: {slot}"
+    },
+    "plan": {
+      "created": "Abonament nou: {tier}, {total} ședințe, {start} – {end}",
+      "updated": "Abonament modificat ({tier}): {changes}"
+    },
+    "fields": {
+      "sessions_total": "ședințe totale",
+      "sessions_used": "ședințe folosite",
+      "start_date": "început",
+      "end_date": "valabil până",
+      "status": "stare",
+      "is_active": "activ",
+      "streak_month": "luna de streak",
+      "price_paid_ron": "preț plătit (RON)",
+      "discount_ron": "reducere (RON)",
+      "payment_method": "metodă de plată",
+      "activated_at": "activat la"
+    },
+    "request": {
+      "requested": "Cerere de abonament trimisă: {tier}",
+      "approved": "Cerere de abonament aprobată: {tier}",
+      "rejected": "Cerere de abonament respinsă: {tier}{reason}",
+      "cancelled": "Cerere de abonament anulată: {tier}",
+      "other": "Cerere de abonament actualizată: {tier}"
+    },
+    "freeze": {
+      "created": "Înghețare: {start} – {end}",
+      "updated": "Înghețare modificată: {start} – {end}",
+      "deleted": "Înghețare ștearsă: {start} – {end}"
+    }
   },
   "adminAgenda": {
     "title": "Orarul zilei următoare pe email",
@@ -427,9 +505,10 @@
     "save_failed": "Salvarea a eșuat.",
     "invalid_input": "Date invalide.",
     "memberTools": "Instrumente membru",
-    "memberToolsDesc": "Programări recurente și planul alimentar al membrului.",
+    "memberToolsDesc": "Programări recurente, istoricul modificărilor și planul alimentar al membrului.",
     "manageMealPlan": "Plan alimentar",
     "manageRecurring": "Programări recurente",
+    "history": "Istoric modificări",
     "upcomingBookingsTitle": "Programări viitoare",
     "upcomingBookingsDesc": "Mută sau anulează rezervările membrului, inclusiv la alt antrenor dacă unul lipsește. Sări peste fereastra de 3h și plafonul săptămânal — autoritatea ta de admin se aplică.",
     "noUpcomingBookings": "Niciuna în următoarele 14 zile.",

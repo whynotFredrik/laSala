@@ -195,6 +195,12 @@ export default async function AdminUserDetailPage({
               {t("manageRecurring")}
             </Link>
             <Link
+              href={`/admin/history?member=${profile.id}`}
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              {t("history")}
+            </Link>
+            <Link
               href={`/admin/users/${profile.id}/meal-plan`}
               className={buttonVariants({ variant: "outline", size: "sm" })}
             >

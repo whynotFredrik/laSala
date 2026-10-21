@@ -150,8 +150,7 @@ async function loadCandidates(
  * Book every (pin, session) pair in `candidates` through the
  * `book_session_for` Postgres function. Pairs whose member already holds a
  * booking on that session are reported as `existing` without an RPC call.
- * Order is by session start so a scarce plan budget is spent on the
- * earliest sessions first (deterministic across runs).
+ * Outcomes are returned in session-start order.
  */
 async function bookCandidates(
   service: ServiceClient,
@@ -177,28 +176,80 @@ async function bookCandidates(
       : a.startAt.localeCompare(b.startAt),
   )
 
-  const outcomes: PinOutcome[] = []
+  // One member's pins run in session order so a scarce plan budget goes to
+  // the earliest sessions first; different members run in parallel. The
+  // Postgres function locks the session row and the member's plan, so
+  // concurrency is safe — it just keeps the cron within its time limit
+  // (a sequential loop used to time out after Monday/Tuesday).
+  const byUser = new Map<string, Candidate[]>()
   for (const c of sorted) {
-    if (existing.has(`${c.userId}:${c.sessionId}`)) {
-      outcomes.push({ ...c, status: "existing" })
-      continue
-    }
-    const { error } = await service.rpc("book_session_for", {
-      p_user_id: c.userId,
-      p_session_id: c.sessionId,
-    })
-    if (error) {
-      outcomes.push({
-        ...c,
-        status: "skipped",
-        reason: skipReasonFor(error.message),
-        message: error.message,
-      })
-      continue
-    }
-    outcomes.push({ ...c, status: "booked" })
+    const list = byUser.get(c.userId) ?? []
+    list.push(c)
+    byUser.set(c.userId, list)
   }
-  return outcomes
+
+  const perUser = await mapWithConcurrency(
+    Array.from(byUser.values()),
+    BOOKING_CONCURRENCY,
+    async (list) => {
+      const out: PinOutcome[] = []
+      for (const c of list) {
+        if (existing.has(`${c.userId}:${c.sessionId}`)) {
+          out.push({ ...c, status: "existing" })
+          continue
+        }
+        const { error } = await service.rpc("book_session_for", {
+          p_user_id: c.userId,
+          p_session_id: c.sessionId,
+        })
+        if (error) {
+          out.push({
+            ...c,
+            status: "skipped",
+            reason: skipReasonFor(error.message),
+            message: error.message,
+          })
+          continue
+        }
+        out.push({ ...c, status: "booked" })
+      }
+      return out
+    },
+  )
+
+  return perUser
+    .flat()
+    .sort((a, b) =>
+      a.startAt === b.startAt
+        ? a.userId.localeCompare(b.userId)
+        : a.startAt.localeCompare(b.startAt),
+    )
+}
+
+/** Members whose pins are booked at the same time. */
+const BOOKING_CONCURRENCY = 8
+
+/**
+ * `Promise.all` over `items` with at most `limit` calls in flight. Results
+ * keep the order of `items`.
+ */
+export async function mapWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length)
+  let next = 0
+  const worker = async () => {
+    while (next < items.length) {
+      const i = next++
+      results[i] = await fn(items[i]!)
+    }
+  }
+  await Promise.all(
+    Array.from({ length: Math.min(limit, items.length) }, worker),
+  )
+  return results
 }
 
 /**

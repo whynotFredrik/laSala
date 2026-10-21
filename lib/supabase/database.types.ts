@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          details: Json
+          entity: string
+          entity_id: string | null
+          id: number
+          member_id: string | null
+          tx: number
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          details?: Json
+          entity: string
+          entity_id?: string | null
+          id?: never
+          member_id?: string | null
+          tx?: number
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          details?: Json
+          entity?: string
+          entity_id?: string | null
+          id?: never
+          member_id?: string | null
+          tx?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_log_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_log_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bookings: {
         Row: {
           booked_at: string
@@ -154,6 +205,38 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_agenda_recipients: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          email: string
+          id: string
+          trainer: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          email: string
+          id?: string
+          trainer?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          email?: string
+          id?: string
+          trainer?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_agenda_recipients_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dietary_questionnaires: {
         Row: {
           additional_notes: string | null
@@ -259,38 +342,6 @@ export type Database = {
             foreignKeyName: "dietary_questionnaires_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      daily_agenda_recipients: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          email: string
-          id: string
-          trainer: string | null
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          email: string
-          id?: string
-          trainer?: string | null
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          email?: string
-          id?: string
-          trainer?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "daily_agenda_recipients_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1100,7 +1151,11 @@ export type Database = {
         Returns: undefined
       }
       admin_freeze_membership: {
-        Args: { p_duration_days: number; p_start_date: string; p_user_id: string }
+        Args: {
+          p_duration_days: number
+          p_start_date: string
+          p_user_id: string
+        }
         Returns: {
           created_at: string
           duration_days: number | null
@@ -1121,9 +1176,9 @@ export type Database = {
         Args: never
         Returns: {
           email: string
-          full_name: string | null
-          override_expires_on: string | null
-          override_remaining_days: number | null
+          full_name: string
+          override_expires_on: string
+          override_remaining_days: number
           remaining_days: number
           user_id: string
         }[]
@@ -1206,6 +1261,19 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      audit_actor: { Args: never; Returns: string }
+      audit_session_snapshot: { Args: { p_session_id: string }; Returns: Json }
+      audit_slot_snapshot: { Args: { p_template_id: string }; Returns: Json }
+      audit_write: {
+        Args: {
+          p_action: string
+          p_details: Json
+          p_entity: string
+          p_entity_id: string
+          p_member_id: string
+        }
+        Returns: undefined
+      }
       book_session: {
         Args: { p_session_id: string }
         Returns: {
@@ -1272,6 +1340,28 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      create_freeze_internal: {
+        Args: {
+          p_duration_days: number
+          p_start_date: string
+          p_user_id: string
+        }
+        Returns: {
+          created_at: string
+          duration_days: number | null
+          end_date: string
+          id: string
+          plan_id: string
+          start_date: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "freeze_periods"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       freeze_days_remaining: { Args: { p_user_id: string }; Returns: number }
       freeze_membership: {
         Args: { p_duration_days: number; p_start_date: string }
@@ -1292,6 +1382,10 @@ export type Database = {
         }
       }
       is_admin: { Args: never; Returns: boolean }
+      is_frozen_on: {
+        Args: { p_date: string; p_user_id: string }
+        Returns: boolean
+      }
       reschedule_booking: {
         Args: { p_booking_id: string; p_new_session_id: string }
         Returns: {

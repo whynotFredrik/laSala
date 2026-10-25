@@ -13,7 +13,12 @@ import { buttonVariants } from "@/components/ui/button"
 import { BookButton } from "@/components/member/book-button"
 import TrainerBadge from "@/components/trainer-badge"
 import { formatStudio } from "@/lib/booking/format"
-import { nextSevenDays, isUnlocked, studioDateISO } from "@/lib/booking/rules"
+import {
+  nextSevenDays,
+  isCancellable,
+  isUnlocked,
+  studioDateISO,
+} from "@/lib/booking/rules"
 import { requireUser } from "@/lib/auth/get-user"
 import { trainerColors, trainersForSex } from "@/lib/constants"
 import { getActivePlan } from "@/lib/plans/active"
@@ -58,14 +63,15 @@ export default async function BookPage() {
   }
 
   // The three reads are independent — run them in one round trip. The
-  // user's currently-booked session ids are used to disable those buttons.
+  // user's current bookings disable those buttons and turn the other slots
+  // of the same day into "move here" (one booking per day).
   const [plan, { data: sessionsRaw }, { data: myBookings }] =
     await Promise.all([
       getActivePlan(supabase, user.id),
       sessionsQuery,
       supabase
         .from("bookings")
-        .select("session_id")
+        .select("id, session_id, sessions(session_date, start_at)")
         .eq("user_id", user.id)
         .eq("status", "booked"),
     ])
@@ -79,6 +85,15 @@ export default async function BookPage() {
       : null
 
   const bookedIds = new Set((myBookings ?? []).map((b) => b.session_id))
+  const bookingByDay = new Map<string, { id: string; startAt: string }>()
+  for (const b of myBookings ?? []) {
+    if (b.sessions) {
+      bookingByDay.set(b.sessions.session_date, {
+        id: b.id,
+        startAt: b.sessions.start_at,
+      })
+    }
+  }
   const sessions = (sessionsRaw ?? []) as SessionWithClass[]
 
   const byDay = new Map<string, SessionWithClass[]>()
@@ -142,9 +157,13 @@ export default async function BookPage() {
                     const inPast = !isAfter(start, now)
                     const alreadyBooked = bookedIds.has(s.id)
                     const full = spotsLeft === 0
+                    const sameDayBooking = alreadyBooked
+                      ? undefined
+                      : bookingByDay.get(s.session_date)
 
                     let label = t("bookSession")
                     let disabled = false
+                    let moveBookingId: string | undefined
 
                     if (alreadyBooked) {
                       label = t("booked")
@@ -158,6 +177,16 @@ export default async function BookPage() {
                     } else if (full) {
                       label = t("full")
                       disabled = true
+                    } else if (sameDayBooking) {
+                      // Already booked another hour this day: offer to move
+                      // that booking here, unless it is inside the 3h lock.
+                      if (isCancellable(sameDayBooking.startAt, now)) {
+                        label = t("moveHere")
+                        moveBookingId = sameDayBooking.id
+                      } else {
+                        label = t("alreadyBooked")
+                        disabled = true
+                      }
                     }
 
                     return (
@@ -189,6 +218,7 @@ export default async function BookPage() {
                           sessionId={s.id}
                           disabled={disabled}
                           label={label}
+                          moveBookingId={moveBookingId}
                         />
                       </li>
                     )

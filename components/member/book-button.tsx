@@ -6,7 +6,10 @@ import { useTranslations } from "next-intl"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
-import { bookSessionAction } from "@/app/(member)/book/actions"
+import {
+  bookSessionAction,
+  rescheduleBookingAction,
+} from "@/app/(member)/book/actions"
 
 /** Errors that mean "you need (another) plan" — the toast links to /plans. */
 const PLAN_ERRORS = new Set([
@@ -15,14 +18,21 @@ const PLAN_ERRORS = new Set([
   "plan_expires_before_session",
 ])
 
+/**
+ * Books `sessionId`. With `moveBookingId` it instead moves that booking
+ * (the member's booking on the same day) here via `reschedule_booking` —
+ * a second booking on the same day would be rejected.
+ */
 export function BookButton({
   sessionId,
   disabled,
   label,
+  moveBookingId,
 }: {
   sessionId: string
   disabled?: boolean
   label: string
+  moveBookingId?: string
 }) {
   const t = useTranslations("booking")
   const tErrors = useTranslations("bookingErrors")
@@ -33,10 +43,13 @@ export function BookButton({
     <Button
       type="button"
       size="sm"
+      variant={moveBookingId ? "outline" : "default"}
       disabled={disabled || pending}
       onClick={() =>
         start(async () => {
-          const result = await bookSessionAction(sessionId)
+          const result = moveBookingId
+            ? await rescheduleBookingAction(moveBookingId, sessionId)
+            : await bookSessionAction(sessionId)
           if (result.status === "error") {
             if (PLAN_ERRORS.has(result.message)) {
               toast.error(tErrors(result.message), {
@@ -49,7 +62,9 @@ export function BookButton({
               toast.error(tErrors(result.message))
             }
           } else {
-            toast.success(t("bookingSuccess"))
+            toast.success(
+              t(moveBookingId ? "rescheduleSuccess" : "bookingSuccess"),
+            )
           }
         })
       }

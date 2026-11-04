@@ -26,9 +26,10 @@ const freezeSchema = z.object({
 
 /**
  * Wraps the Postgres `freeze_membership` function. The function does the
- * 48-hour notice check, the 14-days-per-6-months allowance check, inserts
- * the freeze period, extends the plan's end_date and cancels the bookings
- * that fall inside the freeze window (migration 0032) — atomically.
+ * notice check (start tomorrow or later, studio time — migration 0035), the
+ * allowance check, inserts the freeze period, extends the plan's end_date
+ * and cancels the bookings that fall inside the freeze window (migration
+ * 0032) — atomically.
  */
 export async function freezeMembershipAction(
   _prev: FreezeState,
@@ -73,7 +74,10 @@ export async function freezeMembershipAction(
     if (msg.includes("duration must be")) {
       return { status: "error", message: "freeze_duration_out_of_range" }
     }
-    if (msg.includes("at least 48 hours")) {
+    if (
+      msg.includes("tomorrow or later") ||
+      msg.includes("at least 48 hours")
+    ) {
       return { status: "error", message: "freeze_advance_notice" }
     }
     if (msg.includes("no active plan")) {

@@ -1,4 +1,4 @@
-import { format, subDays } from "date-fns"
+import { addDays, format, formatISO, parseISO, subDays } from "date-fns"
 import { ro } from "date-fns/locale"
 import { getTranslations } from "next-intl/server"
 
@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { studioDateISO } from "@/lib/booking/rules"
 import { RULES } from "@/lib/constants"
 import { createClient } from "@/lib/supabase/server"
 
@@ -77,7 +78,13 @@ export async function FreezeSection({ userId }: { userId: string }) {
             <AlertDescription>{t("noAllowanceBody")}</AlertDescription>
           </Alert>
         ) : (
-          <FreezeForm remainingDays={remaining} />
+          <FreezeForm
+            remainingDays={remaining}
+            minStartDate={formatISO(
+              addDays(parseISO(studioDateISO()), RULES.FREEZE_MIN_NOTICE_DAYS),
+              { representation: "date" },
+            )}
+          />
         )}
 
         {periods && periods.length > 0 ? (

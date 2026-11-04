@@ -33,11 +33,12 @@ export const EMAIL_SENDERS = {
  */
 export const RULES = {
   CANCEL_HOURS_BEFORE_SESSION: 3,
-  RESCHEDULE_LIMIT_PER_WEEK: 2,
+  RESCHEDULE_LIMIT_PER_WEEK: 3,
   FREEZE_MIN_DAYS: 3,
   FREEZE_MAX_DAYS: 14,
   FREEZE_TOTAL_DAYS_PER_6_MONTHS: 14,
-  FREEZE_ADVANCE_NOTICE_HOURS: 48,
+  /** Earliest member freeze start: studio today + this many days. */
+  FREEZE_MIN_NOTICE_DAYS: 1,
   TIMEZONE: "Europe/Bucharest",
 } as const
 

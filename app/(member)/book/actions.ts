@@ -136,8 +136,8 @@ export async function cancelBookingAction(
 }
 
 /**
- * Wraps `reschedule_booking`. The cap (2 per ISO week) is enforced server-side
- * in the function.
+ * Wraps `reschedule_booking`. The cap (3 per member per studio week,
+ * migration 0034) is enforced server-side in the function.
  */
 export async function rescheduleBookingAction(
   bookingId: string,

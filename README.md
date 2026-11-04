@@ -59,8 +59,8 @@ These are encoded as functions in `lib/booking/` and as constraints in `supabase
 - **One per day:** a member can hold at most one active booking per calendar date
 - **Plan required:** member must have an active, non-expired plan with `sessions_used < plan_total`
 - **Cancellation window:** at least 3 hours before session start
-- **Reschedule limit:** 2 reschedules per ISO week per member
-- **Freeze:** 3–14 days per request, 14 days total per rolling 6 months, 48-hour advance notice, plan end date is extended by the freeze duration, bookings inside the freeze are cancelled and none can be made. Admins can allocate freezes (no notice) and override a member's remaining days for 6 months
+- **Reschedule limit:** 3 reschedules per ISO week per member (cancellations do not count)
+- **Freeze:** 3–14 days per request, 14 days total per rolling 6 months, can start from tomorrow (studio date), plan end date is extended by the freeze duration, bookings inside the freeze are cancelled and none can be made. Admins can allocate freezes (from today) and override a member's remaining days for 6 months
 
 ## Payments
 

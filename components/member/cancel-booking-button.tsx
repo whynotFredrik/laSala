@@ -7,7 +7,14 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { cancelBookingAction } from "@/app/(member)/book/actions"
 
-export function CancelBookingButton({ bookingId }: { bookingId: string }) {
+export function CancelBookingButton({
+  bookingId,
+  when,
+}: {
+  bookingId: string
+  /** Session day and time in studio time, e.g. "vineri 6 noiembrie, 08:00". */
+  when: string
+}) {
   const t = useTranslations("booking")
   const tErrors = useTranslations("bookingErrors")
   const [pending, start] = useTransition()
@@ -20,7 +27,7 @@ export function CancelBookingButton({ bookingId }: { bookingId: string }) {
       disabled={pending}
       onClick={() =>
         start(async () => {
-          if (!confirm(t("cancelConfirm"))) return
+          if (!confirm(t("cancelConfirm", { when }))) return
           const result = await cancelBookingAction(bookingId)
           if (result.status === "error") {
             toast.error(tErrors(result.message))

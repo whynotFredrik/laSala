@@ -145,7 +145,7 @@
     "bookingSuccess": "Rezervare confirmată!",
     "bookingError": "Eroare la rezervare",
     "cancelBooking": "Anulează rezervarea",
-    "cancelConfirm": "Sigur vrei să anulezi rezervarea?",
+    "cancelConfirm": "Anulezi rezervarea de {when}?",
     "rescheduleBooking": "Reprogramează",
     "reschedulePickNew": "Alege o sesiune nouă din lista de mai jos.",
     "cancelSuccess": "Rezervare anulată",

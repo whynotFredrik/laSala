@@ -1,7 +1,12 @@
 import Link from "next/link"
+import { redirect } from "next/navigation"
 import { format } from "date-fns"
 import { ro } from "date-fns/locale"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 import { getTranslations } from "next-intl/server"
+import { z } from "zod"
+
+import { buttonVariants } from "@/components/ui/button"
 
 import {
   Card,
@@ -12,21 +17,30 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { createClient } from "@/lib/supabase/server"
+import { cn } from "@/lib/utils"
+
+const PAGE_SIZE = 25
+
+const pageSchema = z.coerce.number().int().min(1).catch(1)
 
 export default async function AdminUsersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>
+  searchParams: Promise<{ q?: string; page?: string }>
 }) {
-  const { q } = await searchParams
+  const sp = await searchParams
+  const q = sp.q
+  const requestedPage = pageSchema.parse(sp.page)
   const supabase = await createClient()
   const t = await getTranslations("adminUsers")
 
   let query = supabase
     .from("profiles")
-    .select("id, email, full_name, phone, role, created_at")
+    .select("id, email, full_name, phone, role, created_at", {
+      count: "exact",
+    })
     .order("created_at", { ascending: false })
-    .limit(100)
+    .order("id", { ascending: true })
   if (q) {
     // PostgREST `or` filter on the joined cols.
     const term = `%${q.replace(/%/g, "")}%`
@@ -34,7 +48,28 @@ export default async function AdminUsersPage({
       `email.ilike.${term},full_name.ilike.${term},phone.ilike.${term}`,
     )
   }
-  const { data: profiles } = await query
+  const from = (requestedPage - 1) * PAGE_SIZE
+  const { data: profiles, count } = await query.range(
+    from,
+    from + PAGE_SIZE - 1,
+  )
+  const total = count ?? 0
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE))
+
+  const pageHref = (n: number) => {
+    const params = new URLSearchParams()
+    if (q) params.set("q", q)
+    if (n > 1) params.set("page", String(n))
+    const qs = params.toString()
+    return qs ? `/admin/users?${qs}` : "/admin/users"
+  }
+  // Past the last page (e.g. a search narrowed the list): PostgREST
+  // returns no rows for an out-of-range slice, so go to the last page.
+  if (requestedPage > pageCount) redirect(pageHref(pageCount))
+  const page = requestedPage
+
+  const navClass = cn(buttonVariants({ variant: "outline", size: "icon" }))
+  const navDisabledClass = cn(navClass, "pointer-events-none opacity-50")
 
   // Fetch active plans for the listed members in one shot, then index by
   // user_id. Avoids N+1 and lets us render a badge inline.
@@ -77,7 +112,7 @@ export default async function AdminUsersPage({
       <Card>
         <CardHeader>
           <CardTitle>
-            {profiles?.length ?? 0} {t("results")}
+            {total} {t("results")}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -137,6 +172,44 @@ export default async function AdminUsersPage({
               })}
             </ul>
           )}
+          {pageCount > 1 ? (
+            <nav
+              aria-label={t("pagination")}
+              className="mt-4 flex items-center justify-between gap-2 border-t pt-4"
+            >
+              {page > 1 ? (
+                <Link
+                  href={pageHref(page - 1)}
+                  className={navClass}
+                  aria-label={t("previousPage")}
+                  title={t("previousPage")}
+                >
+                  <ChevronLeft className="size-4" />
+                </Link>
+              ) : (
+                <span className={navDisabledClass} aria-hidden>
+                  <ChevronLeft className="size-4" />
+                </span>
+              )}
+              <p className="text-sm text-muted-foreground">
+                {t("pageOf", { page, total: pageCount })}
+              </p>
+              {page < pageCount ? (
+                <Link
+                  href={pageHref(page + 1)}
+                  className={navClass}
+                  aria-label={t("nextPage")}
+                  title={t("nextPage")}
+                >
+                  <ChevronRight className="size-4" />
+                </Link>
+              ) : (
+                <span className={navDisabledClass} aria-hidden>
+                  <ChevronRight className="size-4" />
+                </span>
+              )}
+            </nav>
+          ) : null}
         </CardContent>
       </Card>
     </div>

@@ -118,7 +118,13 @@ export async function UpcomingBookings({
                         bookingId={b.id}
                         candidates={candidates}
                       />
-                      <CancelBookingButton bookingId={b.id} />
+                      <CancelBookingButton
+                        bookingId={b.id}
+                        when={formatStudio(
+                          session.start_at,
+                          "EEEE d MMMM, HH:mm",
+                        )}
+                      />
                     </div>
                   ) : (
                     <span className="text-xs text-muted-foreground">

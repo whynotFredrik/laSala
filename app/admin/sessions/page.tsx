@@ -1,5 +1,4 @@
-import { addDays, formatISO, startOfDay } from "date-fns"
-import { toZonedTime } from "date-fns-tz"
+import { addDays, formatISO, parseISO } from "date-fns"
 import { ChevronLeft, ChevronRight, ExternalLink } from "lucide-react"
 import Link from "next/link"
 import { getTranslations } from "next-intl/server"
@@ -14,7 +13,7 @@ import {
   CardHeader,
 } from "@/components/ui/card"
 import { formatStudio } from "@/lib/booking/format"
-import { STUDIO_TZ } from "@/lib/booking/rules"
+import { studioDateISO } from "@/lib/booking/rules"
 import { trainerColors } from "@/lib/constants"
 import { isCalendarConfigured } from "@/lib/google/config"
 import { createClient } from "@/lib/supabase/server"
@@ -22,7 +21,12 @@ import { cn } from "@/lib/utils"
 
 import { SyncCalendarButton } from "./sync-calendar-button"
 
+/** Days ahead of today (today included) the admin can open. */
 const VIEW_DAYS = 14
+/** Days before today the admin can look back at. */
+const PAST_DAYS = 60
+
+const DAY_RE = /^\d{4}-\d{2}-\d{2}$/
 
 // The calendar sync action invoked from this page pushes events to Google
 // Calendar via `after()`; give it room beyond the default 10s.
@@ -37,15 +41,18 @@ export default async function AdminSessionsPage({
   const t = await getTranslations("adminSessions")
   const sp = await searchParams
 
-  // One day at a time; the window is today + the next VIEW_DAYS - 1 days.
-  const todayLocal = startOfDay(toZonedTime(new Date(), STUDIO_TZ))
-  const days = Array.from({ length: VIEW_DAYS }, (_, i) =>
-    formatISO(addDays(todayLocal, i), { representation: "date" }),
-  )
-  const dayIndex = Math.max(days.indexOf(sp.day ?? ""), 0)
-  const day = days[dayIndex]
-  const prevDay = dayIndex > 0 ? days[dayIndex - 1] : null
-  const nextDay = dayIndex < days.length - 1 ? days[dayIndex + 1] : null
+  // One day at a time, anywhere from PAST_DAYS back to VIEW_DAYS - 1 ahead
+  // (studio dates). YYYY-MM-DD strings compare chronologically.
+  const today = studioDateISO()
+  const shift = (iso: string, n: number) =>
+    formatISO(addDays(parseISO(iso), n), { representation: "date" })
+  const minDay = shift(today, -PAST_DAYS)
+  const maxDay = shift(today, VIEW_DAYS - 1)
+  const requested = sp.day && DAY_RE.test(sp.day) ? sp.day : today
+  const day =
+    requested < minDay ? minDay : requested > maxDay ? maxDay : requested
+  const prevDay = day > minDay ? shift(day, -1) : null
+  const nextDay = day < maxDay ? shift(day, 1) : null
 
   const { data: sessions } = await supabase
     .from("sessions")
@@ -83,7 +90,7 @@ export default async function AdminSessionsPage({
             {t("title")}
           </h1>
           <p className="text-sm text-muted-foreground">
-            {t("subtitle", { days: VIEW_DAYS })}
+            {t("subtitle", { days: VIEW_DAYS, past: PAST_DAYS })}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -123,17 +130,19 @@ export default async function AdminSessionsPage({
         )}
         <div className="text-center">
           <p className="font-medium capitalize">
-            {formatStudio(new Date(day), "EEEE d MMM yyyy")}
+            {formatStudio(parseISO(day), "EEEE d MMM yyyy")}
           </p>
           <p className="text-xs text-muted-foreground">
-            {dayIndex === 0 ? (
+            {day === today ? (
               t("today")
             ) : (
-              <Link href="/admin/sessions" className="underline">
-                {t("backToToday")}
-              </Link>
-            )}{" "}
-            · {t("dayOf", { day: dayIndex + 1, total: VIEW_DAYS })}
+              <>
+                {day < today ? `${t("pastDay")} · ` : null}
+                <Link href="/admin/sessions" className="underline">
+                  {t("backToToday")}
+                </Link>
+              </>
+            )}
           </p>
         </div>
         {nextDay ? (
@@ -151,6 +160,31 @@ export default async function AdminSessionsPage({
           </span>
         )}
       </nav>
+
+      <form
+        method="get"
+        action="/admin/sessions"
+        className="flex items-center justify-center gap-2"
+      >
+        <label htmlFor="day" className="sr-only">
+          {t("pickDay")}
+        </label>
+        <input
+          id="day"
+          name="day"
+          type="date"
+          min={minDay}
+          max={maxDay}
+          defaultValue={day}
+          className="h-9 rounded border bg-background px-2 text-sm"
+        />
+        <button
+          type="submit"
+          className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+        >
+          {t("goToDay")}
+        </button>
+      </form>
 
       <Card>
         <CardHeader>

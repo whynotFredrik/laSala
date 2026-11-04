@@ -13,16 +13,14 @@ import { freezeMembershipAction, type FreezeState } from "./freeze-actions"
 
 const initialState: FreezeState = { status: "idle" }
 
-/**
- * Earliest date a freeze may start: today + 2 (48-hour rule).
- */
-function minStartDate() {
-  const d = new Date()
-  d.setDate(d.getDate() + 2)
-  return d.toISOString().slice(0, 10)
-}
-
-export function FreezeForm({ remainingDays }: { remainingDays: number }) {
+export function FreezeForm({
+  remainingDays,
+  minStartDate,
+}: {
+  remainingDays: number
+  /** Earliest allowed start, YYYY-MM-DD: studio tomorrow (migration 0035). */
+  minStartDate: string
+}) {
   const t = useTranslations("freeze")
   const tErrors = useTranslations("freezeErrors")
   const [state, action, pending] = useActionState(
@@ -40,7 +38,7 @@ export function FreezeForm({ remainingDays }: { remainingDays: number }) {
           id="startDate"
           name="startDate"
           type="date"
-          min={minStartDate()}
+          min={minStartDate}
           required
           disabled={disabled}
         />

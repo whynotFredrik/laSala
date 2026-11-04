@@ -11,7 +11,8 @@ import { fromZonedTime, toZonedTime } from "date-fns-tz"
 
 export const STUDIO_TZ = "Europe/Bucharest"
 export const CANCEL_LOCK_HOURS = 3
-export const RESCHEDULE_PER_WEEK_CAP = 2
+/** Reschedules per member per studio ISO week (migration 0034). */
+export const RESCHEDULE_PER_WEEK_CAP = 3
 
 /**
  * "Now" in studio local time.

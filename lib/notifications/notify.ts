@@ -13,6 +13,7 @@ export type NotificationType =
   | "renewal_reminder"
   | "weekly_summary"
   | "pins_booked"
+  | "studio_closed"
   | "expiration_warning"
   | "admin_plan_request"
   | "admin_expiry_digest"

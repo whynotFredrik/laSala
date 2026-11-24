@@ -9,6 +9,7 @@ import {
 } from "@/lib/agenda/daily-agenda"
 import { studioDateISO } from "@/lib/booking/rules"
 import { sendEmail } from "@/lib/email/send"
+import { loadClosedDates } from "@/lib/sessions/closures"
 import { createServiceClient } from "@/lib/supabase/service"
 
 export const dynamic = "force-dynamic"
@@ -22,7 +23,8 @@ export const runtime = "nodejs"
  *
  * Tomorrow's sessions always exist by now: the daily sync generates the
  * current week every morning and next week from Saturday, so Sunday
- * evening already sees Monday.
+ * evening already sees Monday. Nothing is sent when the studio is closed
+ * tomorrow (`studio_closures`).
  *
  * Auth: `Authorization: Bearer ${CRON_SECRET}` (Vercel sends it).
  */
@@ -49,6 +51,11 @@ export async function GET(request: NextRequest) {
 
   const tomorrow = addDays(parseISO(studioDateISO()), 1)
   const tomorrowIso = formatISO(tomorrow, { representation: "date" })
+
+  const closed = await loadClosedDates(service, tomorrowIso, tomorrowIso)
+  if (closed.has(tomorrowIso)) {
+    return NextResponse.json({ ok: true, date: tomorrowIso, closed: true, sent: 0 })
+  }
 
   const { data: rows, error: sErr } = await service
     .from("sessions")

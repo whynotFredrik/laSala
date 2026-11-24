@@ -1,5 +1,5 @@
 import { addDays, formatISO, parseISO } from "date-fns"
-import { ChevronLeft, ChevronRight, ExternalLink } from "lucide-react"
+import { CalendarOff, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react"
 import Link from "next/link"
 import { getTranslations } from "next-intl/server"
 
@@ -16,6 +16,7 @@ import { formatStudio } from "@/lib/booking/format"
 import { studioDateISO } from "@/lib/booking/rules"
 import { trainerColors } from "@/lib/constants"
 import { isCalendarConfigured } from "@/lib/google/config"
+import { loadClosedDates } from "@/lib/sessions/closures"
 import { createClient } from "@/lib/supabase/server"
 import { cn } from "@/lib/utils"
 
@@ -39,6 +40,7 @@ export default async function AdminSessionsPage({
 }) {
   const supabase = await createClient()
   const t = await getTranslations("adminSessions")
+  const tClosures = await getTranslations("adminClosures")
   const sp = await searchParams
 
   // One day at a time, anywhere from PAST_DAYS back to VIEW_DAYS - 1 ahead
@@ -54,14 +56,19 @@ export default async function AdminSessionsPage({
   const prevDay = day > minDay ? shift(day, -1) : null
   const nextDay = day < maxDay ? shift(day, 1) : null
 
-  const { data: sessions } = await supabase
-    .from("sessions")
-    .select(
-      "id, session_date, start_at, capacity, booked_count, trainer, classes(name_ro), bookings(id, status, profiles(full_name, email))",
-    )
-    .eq("session_date", day)
-    .order("start_at", { ascending: true })
-    .order("trainer", { ascending: true })
+  const [{ data: sessions }, closed] = await Promise.all([
+    supabase
+      .from("sessions")
+      .select(
+        "id, session_date, start_at, capacity, booked_count, trainer, classes(name_ro), bookings(id, status, user_id, profiles(full_name, email))",
+      )
+      .eq("session_date", day)
+      .order("start_at", { ascending: true })
+      .order("trainer", { ascending: true }),
+    loadClosedDates(supabase, day, day),
+  ])
+  const isClosed = closed.has(day)
+  const closedReason = closed.get(day) ?? null
 
   // Google Calendar sync state for the sessions on screen (admin RLS read).
   const calendarOn = isCalendarConfigured()
@@ -186,6 +193,21 @@ export default async function AdminSessionsPage({
         </button>
       </form>
 
+      {isClosed ? (
+        <Alert>
+          <CalendarOff />
+          <AlertTitle>{tClosures("closedBanner")}</AlertTitle>
+          <AlertDescription>
+            <p>
+              {closedReason ? `${closedReason} · ` : null}
+              <Link href="/admin/closures" className="underline">
+                {tClosures("title")}
+              </Link>
+            </p>
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
       <Card>
         <CardHeader>
           <CardDescription>
@@ -248,11 +270,13 @@ export default async function AdminSessionsPage({
                     {roster.length > 0 ? (
                       <ul className="mt-2 space-y-0.5 text-sm">
                         {roster.map((b) => (
-                          <li
-                            key={b.id}
-                            className="text-muted-foreground"
-                          >
-                            {b.profiles?.full_name ?? b.profiles?.email}
+                          <li key={b.id}>
+                            <Link
+                              href={`/admin/users/${b.user_id}`}
+                              className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+                            >
+                              {b.profiles?.full_name ?? b.profiles?.email}
+                            </Link>
                           </li>
                         ))}
                       </ul>

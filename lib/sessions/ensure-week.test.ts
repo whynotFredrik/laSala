@@ -98,8 +98,8 @@ describe("ensureSessionsForWeek", () => {
     expect(res.created).toBe(3)
     expect(res.skipped).toBe(0)
     expect(res.sessionIds).toHaveLength(3)
-    // template + week read + one bulk insert
-    expect(svc.roundTrips()).toBe(3)
+    // template + week read + closures read + one bulk insert
+    expect(svc.roundTrips()).toBe(4)
 
     const sessions = svc.tables.sessions!
     expect(sessions.map((s) => s.session_date)).toEqual([
@@ -120,6 +120,32 @@ describe("ensureSessionsForWeek", () => {
     expect(second.skipped).toBe(3)
     expect(second.sessionIds).toEqual(first.sessionIds)
     expect(svc.tables.sessions).toHaveLength(3)
+  })
+
+  it("creates nothing on a closed day and leaves its sessions out", async () => {
+    const svc = fakeService({
+      schedule_template: [...template],
+      sessions: [
+        // Generated before the admin closed Monday.
+        {
+          id: "mon-eugen",
+          session_date: "2026-10-19",
+          start_at: "2026-10-19T04:00:00+00:00",
+          trainer: "Eugen",
+          schedule_template_id: "t1",
+        },
+      ],
+      studio_closures: [{ closed_on: "2026-10-19", reason: null }],
+    })
+    const res = await ensureSessionsForWeek(svc.client, anchor)
+
+    expect(res.created).toBe(1)
+    expect(res.skipped).toBe(0)
+    expect(res.sessionIds).not.toContain("mon-eugen")
+    expect(svc.tables.sessions!.map((s) => s.session_date)).toEqual([
+      "2026-10-19",
+      "2026-10-21",
+    ])
   })
 
   it("fills only missing slots and heals a missing template link", async () => {

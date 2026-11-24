@@ -1106,6 +1106,35 @@ export type Database = {
           },
         ]
       }
+      studio_closures: {
+        Row: {
+          closed_on: string
+          created_at: string
+          created_by: string | null
+          reason: string | null
+        }
+        Insert: {
+          closed_on: string
+          created_at?: string
+          created_by?: string | null
+          reason?: string | null
+        }
+        Update: {
+          closed_on?: string
+          created_at?: string
+          created_by?: string | null
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_closures_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       weight_logs: {
         Row: {
           created_at: string
@@ -1149,6 +1178,28 @@ export type Database = {
       admin_clear_freeze_override: {
         Args: { p_user_id: string }
         Returns: undefined
+      }
+      admin_close_studio_days: {
+        Args: { p_dates: string[]; p_reason?: string | null }
+        Returns: {
+          booked_at: string
+          cancelled_at: string | null
+          id: string
+          is_grace: boolean
+          iso_week: string
+          notes: string | null
+          reschedule_count_iso_week: number
+          rescheduled_at: string | null
+          session_id: string
+          status: Database["public"]["Enums"]["booking_status"]
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "bookings"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       admin_freeze_membership: {
         Args: {
@@ -1214,6 +1265,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      admin_reopen_studio_day: {
+        Args: { p_date: string }
+        Returns: undefined
       }
       admin_set_freeze_remaining: {
         Args: { p_remaining_days: number; p_user_id: string }
@@ -1384,6 +1439,10 @@ export type Database = {
       is_admin: { Args: never; Returns: boolean }
       is_frozen_on: {
         Args: { p_date: string; p_user_id: string }
+        Returns: boolean
+      }
+      is_studio_closed: {
+        Args: { p_date: string }
         Returns: boolean
       }
       reschedule_booking: {

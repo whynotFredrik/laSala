@@ -6,6 +6,7 @@ import {
   renewalDedupeKey,
   renewalReminderDue,
   renewalThreshold,
+  renewalWatchFor,
 } from "./rules"
 
 describe("renewalThreshold", () => {
@@ -57,5 +58,46 @@ describe("remainingSessions / renewalDedupeKey", () => {
       remainingSessions({ end_date: "", sessions_total: 8, sessions_used: 9 }),
     ).toBe(0)
     expect(renewalDedupeKey("abc", 2)).toBe("renewal:abc:2")
+  })
+})
+
+describe("renewalWatchFor", () => {
+  const today = "2026-11-24"
+  const plan = (used: number, total: number, end: string) => ({
+    sessions_used: used,
+    sessions_total: total,
+    end_date: end,
+  })
+
+  it("skips plans with sessions and time to spare", () => {
+    expect(renewalWatchFor(plan(5, 12, "2026-12-20"), today)).toBeNull()
+    expect(renewalWatchFor(plan(9, 12, "2026-12-02"), today)).toBeNull()
+  })
+
+  it("lists plans with 2 sessions or fewer left", () => {
+    expect(renewalWatchFor(plan(10, 12, "2026-12-20"), today)).toEqual({
+      remaining: 2,
+      daysLeft: 26,
+      lowSessions: true,
+      expiringSoon: false,
+    })
+    expect(renewalWatchFor(plan(12, 12, "2026-12-20"), today)?.remaining).toBe(0)
+  })
+
+  it("lists plans ending within 7 days, today and past dates included", () => {
+    expect(renewalWatchFor(plan(2, 12, "2026-12-01"), today)).toEqual({
+      remaining: 10,
+      daysLeft: 7,
+      lowSessions: false,
+      expiringSoon: true,
+    })
+    expect(renewalWatchFor(plan(2, 12, "2026-11-24"), today)?.daysLeft).toBe(0)
+    expect(renewalWatchFor(plan(2, 12, "2026-11-20"), today)?.daysLeft).toBe(-4)
+  })
+
+  it("flags both reasons at once", () => {
+    const w = renewalWatchFor(plan(11, 12, "2026-11-26"), today)
+    expect(w?.lowSessions).toBe(true)
+    expect(w?.expiringSoon).toBe(true)
   })
 })

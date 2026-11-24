@@ -20,6 +20,7 @@ export type RecurringSkipReason =
   | "planExpired"
   | "noSessionsLeft"
   | "frozen"
+  | "studioClosed"
   | "notAllowed"
   | "unknown"
 
@@ -31,6 +32,7 @@ export function skipReasonFor(message: string): RecurringSkipReason {
   if (m.includes("plan expires")) return "planExpired"
   if (m.includes("no sessions remaining")) return "noSessionsLeft"
   if (m.includes("membership frozen")) return "frozen"
+  if (m.includes("studio closed")) return "studioClosed"
   if (m.includes("admin only") || m.includes("permission denied")) {
     return "notAllowed"
   }

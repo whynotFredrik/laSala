@@ -76,6 +76,7 @@
       "plan_activated": "Vezi planul",
       "weekly_summary": "Vezi rezervările",
       "pins_booked": "Vezi rezervările",
+      "studio_closed": "Rezervă altă zi",
       "admin_plan_request": "Vezi cererile",
       "admin_expiry_digest": "Vezi membrii"
     },
@@ -84,6 +85,8 @@
     "adminExpiryTitle": "{count, plural, one {Un abonament expiră} other {# abonamente expiră}} curând",
     "adminExpiryIntro": "Membrii anunțați astăzi:",
     "adminExpiryLine": "{name} — {planName}, expiră pe {endDate} (în {days} zile, {remaining} sesiuni rămase)",
+    "studioClosedTitle": "Studio închis {date}",
+    "studioClosedBody": "Studioul este închis {date}{reason, select, none {} other { ({reason})}}. Rezervarea ta de la ora {time} a fost anulată, iar sesiunea a fost returnată în abonament.",
     "planActivatedTitle": "Abonament activ: {planName}",
     "planActivatedBody": "{sessionsTotal} sesiuni în total (inclusiv cele rămase din abonamentul anterior), valabil până la {endDate}. Rezervările recurente au fost reluate.",
     "renewalReminderTitle": "Mai ai {remaining} sesiuni — reînnoiește-ți abonamentul",
@@ -104,6 +107,7 @@
       "planExpired": "abonamentul expiră înainte de sesiune",
       "noSessionsLeft": "nu mai ai sesiuni pe abonament",
       "frozen": "abonamentul este înghețat în ziua respectivă",
+      "studioClosed": "studioul este închis în ziua respectivă",
       "notAllowed": "eroare de sistem",
       "unknown": "eroare necunoscută"
     }
@@ -160,7 +164,8 @@
     "planExhaustedAlertBody": "Nu mai ai sesiuni disponibile sau abonamentul a expirat. Solicită un abonament nou ca să poți rezerva în continuare.",
     "choosePlan": "Alege un abonament",
     "rulesTitle": "Cum funcționează rezervările",
-    "rulesBody": "Sesiunile pentru săptămâna următoare se deblochează duminica dimineața. Anularea este posibilă cu cel puțin 3 ore înainte de sesiune. Poți reprograma de maxim 3 ori pe săptămână."
+    "rulesBody": "Sesiunile pentru săptămâna următoare se deblochează duminica dimineața. Anularea este posibilă cu cel puțin 3 ore înainte de sesiune. Poți reprograma de maxim 3 ori pe săptămână.",
+    "studioClosedDay": "Studioul este închis în această zi{reason, select, none {} other { ({reason})}}."
   },
   "bookingErrors": {
     "invalid_input": "Date invalide.",
@@ -173,6 +178,7 @@
     "plan_exhausted": "Nu mai ai sesiuni disponibile pe abonament. Solicită următorul din pagina Planuri.",
     "already_booked_today": "Ai deja o rezervare pentru această zi.",
     "membership_frozen": "Abonamentul este înghețat în această zi.",
+    "studio_closed": "Studioul este închis în această zi.",
     "booking_not_found": "Rezervarea nu a fost găsită.",
     "booking_not_active": "Rezervarea nu mai este activă.",
     "forbidden": "Nu ai permisiunea pentru această acțiune.",
@@ -237,7 +243,6 @@
     "month": "lună",
     "months": "luni",
     "request": "Solicită",
-    "renew": "Reînnoiește",
     "alreadyPending": "Cerere în așteptare",
     "streakTitle": "Streak de consecvență",
     "streakIntro": "Disciplina aduce rezultate! Plătește următorul abonament înainte ca cel curent să expire și deblochezi reduceri progresive la abonamentele lunare: −15 RON în luna 2, −30 RON în luna 3 și −40 RON din luna 4, atât timp cât nu lași abonamentul să expire. Promoțiile (pachetele de 6 luni) nu intră în streak.",
@@ -340,8 +345,10 @@
     "dashboard": "Panou",
     "users": "Utilizatori",
     "planRequests": "Cereri",
+    "renewals": "Reînnoiri",
     "sessions": "Sesiuni",
     "freezes": "Înghețări",
+    "closures": "Zile închise",
     "schedule": "Orar",
     "planTiers": "Tarife",
     "gdpr": "GDPR",
@@ -396,6 +403,50 @@
       "forbidden": "Doar administratorii pot face asta.",
       "unknown": "A apărut o eroare. Încearcă din nou."
     }
+  },
+  "adminClosures": {
+    "title": "Zile închise",
+    "subtitle": "Sărbători și alte zile în care studioul nu e deschis. În aceste zile nu se generează sesiuni și nimeni nu poate rezerva.",
+    "closeTitle": "Închide studioul",
+    "closeDescription": "Alege din calendar una sau mai multe zile.",
+    "selectedTitle": "Zile alese",
+    "selectedNone": "Nicio zi aleasă. Apasă pe zilele din calendar.",
+    "reason": "Motiv (opțional)",
+    "reasonPlaceholder": "ex. Sf. Andrei, 1 Decembrie",
+    "closeHint": "Rezervările existente în aceste zile se anulează, iar membrii primesc sesiunea înapoi în abonament și o notificare (în aplicație și pe email). Abonamentele nu se prelungesc.",
+    "closeSubmit": "{count, plural, =0 {Închide zilele} one {Închide ziua} other {Închide # zile}}",
+    "closed": "{days, plural, one {Zi închisă} other {# zile închise}}. {cancelled, plural, =0 {Nicio rezervare anulată.} one {O rezervare anulată.} other {# rezervări anulate.}}",
+    "upcomingTitle": "Zile închise programate ({count})",
+    "upcomingDescription": "Dacă redeschizi o zi, sesiunile și rezervările recurente se refac automat. Rezervările anulate la închidere nu se refac.",
+    "noUpcoming": "Nicio zi închisă programată.",
+    "reopen": "Redeschide",
+    "reopenConfirm": "Redeschizi studioul {date}?",
+    "reopened": "Zi redeschisă",
+    "closedBanner": "Studioul este închis în această zi",
+    "errors": {
+      "invalid_input": "Date invalide.",
+      "date_in_past": "Nu poți închide o zi din trecut.",
+      "forbidden": "Doar administratorii pot face asta.",
+      "unknown": "A apărut o eroare. Încearcă din nou."
+    }
+  },
+  "adminRenewals": {
+    "title": "Reînnoiri",
+    "subtitle": "Membrii cu abonament activ care mai au cel mult {sessions} ședințe de rezervat sau al căror abonament expiră în următoarele {days} zile, cu rezervările lor din săptămâna curentă.",
+    "lowSessionsCount": "Cu cel mult {sessions} ședințe rămase",
+    "expiringCount": "Expiră în următoarele {days} zile",
+    "listTitle": "{count, plural, =0 {Niciun membru} one {Un membru} other {# membri}}",
+    "weekRange": "Săptămâna curentă: {from} – {to}",
+    "empty": "Nimeni nu e la ultimele ședințe și niciun abonament nu expiră în următoarele zile.",
+    "requestPending": "Cerere trimisă",
+    "sessionsLeft": "{remaining, plural, =0 {nicio ședință rămasă} one {o ședință rămasă} other {# ședințe rămase}} din {total}",
+    "endsOn": "expiră pe {date}",
+    "expiresIn": "{days, plural, one {mâine} other {în # zile}}",
+    "expiresToday": "azi",
+    "expired": "a expirat",
+    "thisWeek": "Săptămâna asta:",
+    "noBookingsThisWeek": "nicio rezervare",
+    "lastSession": "Ultima ședință rezervată: {date}"
   },
   "adminAgenda": {
     "title": "Orarul zilei următoare pe email",

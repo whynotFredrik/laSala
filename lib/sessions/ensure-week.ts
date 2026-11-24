@@ -4,6 +4,7 @@ import { addDays, formatISO } from "date-fns"
 import { fromZonedTime } from "date-fns-tz"
 
 import { STUDIO_TZ, studioWeekStart, unlockAtFor } from "@/lib/booking/rules"
+import { loadClosedDates } from "@/lib/sessions/closures"
 import type { createServiceClient } from "@/lib/supabase/service"
 
 type ServiceClient = ReturnType<typeof createServiceClient>
@@ -31,6 +32,10 @@ export type EnsureWeekResult = {
 /**
  * Make sure `sessions` rows exist for every enabled schedule_template slot
  * in the studio week containing `anchor` (Mon..Sun, Europe/Bucharest).
+ *
+ * Dates the admin closed (`studio_closures`, migration 0036) get no new
+ * sessions; rows generated before the day was closed are left alone and
+ * hidden by the readers.
  *
  * Idempotent: an existing (date, start, trainer) tuple is left alone —
  * only its `schedule_template_id` is healed if it was still null (rows
@@ -65,11 +70,14 @@ export async function ensureSessionsForWeek(
 
   // One read for the whole week instead of one per slot: the cron used to
   // run past its time limit doing hundreds of sequential round trips.
-  const { data: weekRows, error: weekErr } = await service
-    .from("sessions")
-    .select("id, session_date, start_at, trainer, schedule_template_id")
-    .gte("session_date", weekStart)
-    .lte("session_date", weekEnd)
+  const [{ data: weekRows, error: weekErr }, closed] = await Promise.all([
+    service
+      .from("sessions")
+      .select("id, session_date, start_at, trainer, schedule_template_id")
+      .gte("session_date", weekStart)
+      .lte("session_date", weekEnd),
+    loadClosedDates(service, weekStart, weekEnd),
+  ])
   if (weekErr) throw new Error(`sessions_load_failed: ${weekErr.message}`)
 
   // Existing session at this (date, time, trainer)? First match wins, so a
@@ -101,6 +109,8 @@ export async function ensureSessionsForWeek(
   for (const slot of template as ScheduleSlot[]) {
     const dayLocal = addDays(weekStartLocal, slot.day_of_week)
     const sessionDate = formatISO(dayLocal, { representation: "date" })
+    // Closed day: nothing to create, and nothing for the pins to book.
+    if (closed.has(sessionDate)) continue
 
     const localStart = new Date(dayLocal)
     localStart.setHours(slot.start_hour, slot.start_minute, 0, 0)

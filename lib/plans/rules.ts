@@ -91,3 +91,24 @@ export function renewalWatchFor(
   if (!lowSessions && !expiringSoon) return null
   return { remaining, daysLeft, lowSessions, expiringSoon }
 }
+
+/**
+ * Renewals list order: plans still running first (soonest to end, then
+ * fewest sessions left), then plans whose `end_date` has passed — still
+ * `active` until a new plan replaces them — most recently expired first.
+ */
+export function splitRenewalWatch<T extends { watch: RenewalWatch }>(
+  rows: T[],
+): { current: T[]; expired: T[] } {
+  const current = rows
+    .filter((r) => r.watch.daysLeft >= 0)
+    .sort(
+      (a, b) =>
+        a.watch.daysLeft - b.watch.daysLeft ||
+        a.watch.remaining - b.watch.remaining,
+    )
+  const expired = rows
+    .filter((r) => r.watch.daysLeft < 0)
+    .sort((a, b) => b.watch.daysLeft - a.watch.daysLeft)
+  return { current, expired }
+}

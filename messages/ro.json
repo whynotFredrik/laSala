@@ -443,7 +443,8 @@
     "endsOn": "expiră pe {date}",
     "expiresIn": "{days, plural, one {mâine} other {în # zile}}",
     "expiresToday": "azi",
-    "expired": "a expirat",
+    "expiredAgo": "{days, plural, one {a expirat ieri} other {a expirat acum # zile}}",
+    "expiredTitle": "Abonamente expirate ({count})",
     "thisWeek": "Săptămâna asta:",
     "noBookingsThisWeek": "nicio rezervare",
     "lastSession": "Ultima ședință rezervată: {date}"

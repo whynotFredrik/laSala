@@ -12,7 +12,11 @@ import {
 } from "@/components/ui/card"
 import { formatStudio } from "@/lib/booking/format"
 import { studioDateISO, studioWeekStart } from "@/lib/booking/rules"
-import { RENEWAL_WATCH, renewalWatchFor } from "@/lib/plans/rules"
+import {
+  RENEWAL_WATCH,
+  renewalWatchFor,
+  splitRenewalWatch,
+} from "@/lib/plans/rules"
 import { createClient } from "@/lib/supabase/server"
 import { cn } from "@/lib/utils"
 
@@ -44,11 +48,7 @@ export default async function AdminRenewalsPage() {
   const watched = (plans ?? [])
     .map((p) => ({ plan: p, watch: renewalWatchFor(p, today) }))
     .flatMap(({ plan, watch }) => (watch ? [{ plan, watch }] : []))
-    .sort(
-      (a, b) =>
-        a.watch.daysLeft - b.watch.daysLeft ||
-        a.watch.remaining - b.watch.remaining,
-    )
+  const { current, expired } = splitRenewalWatch(watched)
 
   // Every upcoming booking of those members: this week's are listed, and
   // the last one is "the last session" once nothing is left to book.
@@ -81,10 +81,95 @@ export default async function AdminRenewalsPage() {
 
   const expiryText = (daysLeft: number) =>
     daysLeft < 0
-      ? t("expired")
+      ? t("expiredAgo", { days: -daysLeft })
       : daysLeft === 0
         ? t("expiresToday")
         : t("expiresIn", { days: daysLeft })
+
+  const renderRow = ({ plan, watch }: (typeof watched)[number]) => {
+    const upcoming = upcomingByUser.get(plan.user_id) ?? []
+    const thisWeek = upcoming.filter((u) => u.date <= weekEnd)
+    const last = upcoming[upcoming.length - 1]
+    const name =
+      plan.profiles?.full_name ?? plan.profiles?.email ?? "—"
+    return (
+      <li key={plan.id} className="space-y-1.5 py-3 text-sm">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <Link
+            href={`/admin/users/${plan.user_id}`}
+            className="font-medium hover:underline"
+          >
+            {name}
+          </Link>
+          {plan.profiles?.phone ? (
+            <a
+              href={`tel:${plan.profiles.phone}`}
+              className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"
+            >
+              <Phone className="size-3.5" />
+              {plan.profiles.phone}
+            </a>
+          ) : null}
+          {pendingUsers.has(plan.user_id) ? (
+            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+              {t("requestPending")}
+            </span>
+          ) : null}
+        </div>
+
+        <p className="text-muted-foreground">
+          {plan.plan_tiers?.name_ro ? (
+            <>{plan.plan_tiers.name_ro} · </>
+          ) : null}
+          <span
+            className={cn(
+              watch.lowSessions &&
+                "font-medium text-destructive",
+            )}
+          >
+            {t("sessionsLeft", {
+              remaining: watch.remaining,
+              total: plan.sessions_total,
+            })}
+          </span>
+          {" · "}
+          <span
+            className={cn(
+              watch.expiringSoon &&
+                "font-medium text-amber-700 dark:text-amber-400",
+            )}
+          >
+            {t("endsOn", {
+              date: formatStudio(
+                parseISO(`${plan.end_date}T12:00:00Z`),
+                "d MMM yyyy",
+              ),
+            })}{" "}
+            ({expiryText(watch.daysLeft)})
+          </span>
+        </p>
+
+        <p>
+          <span className="text-muted-foreground">
+            {t("thisWeek")}{" "}
+          </span>
+          {thisWeek.length === 0
+            ? t("noBookingsThisWeek")
+            : thisWeek
+                .map((u) => formatStudio(u.startAt, "EEE d · HH:mm"))
+                .join(", ")}
+        </p>
+
+        {watch.remaining === 0 && last ? (
+          <p className="text-muted-foreground">
+            {t("lastSession", {
+              date: formatStudio(last.startAt, "EEEE d MMM · HH:mm"),
+            })}
+          </p>
+        ) : null}
+      </li>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -135,92 +220,19 @@ export default async function AdminRenewalsPage() {
           {watched.length === 0 ? (
             <p className="text-sm text-muted-foreground">{t("empty")}</p>
           ) : (
-            <ul className="divide-y">
-              {watched.map(({ plan, watch }) => {
-                const upcoming = upcomingByUser.get(plan.user_id) ?? []
-                const thisWeek = upcoming.filter((u) => u.date <= weekEnd)
-                const last = upcoming[upcoming.length - 1]
-                const name =
-                  plan.profiles?.full_name ?? plan.profiles?.email ?? "—"
-                return (
-                  <li key={plan.id} className="space-y-1.5 py-3 text-sm">
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                      <Link
-                        href={`/admin/users/${plan.user_id}`}
-                        className="font-medium hover:underline"
-                      >
-                        {name}
-                      </Link>
-                      {plan.profiles?.phone ? (
-                        <a
-                          href={`tel:${plan.profiles.phone}`}
-                          className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"
-                        >
-                          <Phone className="size-3.5" />
-                          {plan.profiles.phone}
-                        </a>
-                      ) : null}
-                      {pendingUsers.has(plan.user_id) ? (
-                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                          {t("requestPending")}
-                        </span>
-                      ) : null}
-                    </div>
-
-                    <p className="text-muted-foreground">
-                      {plan.plan_tiers?.name_ro ? (
-                        <>{plan.plan_tiers.name_ro} · </>
-                      ) : null}
-                      <span
-                        className={cn(
-                          watch.lowSessions &&
-                            "font-medium text-destructive",
-                        )}
-                      >
-                        {t("sessionsLeft", {
-                          remaining: watch.remaining,
-                          total: plan.sessions_total,
-                        })}
-                      </span>
-                      {" · "}
-                      <span
-                        className={cn(
-                          watch.expiringSoon &&
-                            "font-medium text-amber-700 dark:text-amber-400",
-                        )}
-                      >
-                        {t("endsOn", {
-                          date: formatStudio(
-                            parseISO(`${plan.end_date}T12:00:00Z`),
-                            "d MMM yyyy",
-                          ),
-                        })}{" "}
-                        ({expiryText(watch.daysLeft)})
-                      </span>
-                    </p>
-
-                    <p>
-                      <span className="text-muted-foreground">
-                        {t("thisWeek")}{" "}
-                      </span>
-                      {thisWeek.length === 0
-                        ? t("noBookingsThisWeek")
-                        : thisWeek
-                            .map((u) => formatStudio(u.startAt, "EEE d · HH:mm"))
-                            .join(", ")}
-                    </p>
-
-                    {watch.remaining === 0 && last ? (
-                      <p className="text-muted-foreground">
-                        {t("lastSession", {
-                          date: formatStudio(last.startAt, "EEEE d MMM · HH:mm"),
-                        })}
-                      </p>
-                    ) : null}
-                  </li>
-                )
-              })}
-            </ul>
+            <div className="space-y-4">
+              {current.length > 0 ? (
+                <ul className="divide-y">{current.map(renderRow)}</ul>
+              ) : null}
+              {expired.length > 0 ? (
+                <section className="space-y-1">
+                  <h2 className="border-t pt-4 text-sm font-medium text-muted-foreground">
+                    {t("expiredTitle", { count: expired.length })}
+                  </h2>
+                  <ul className="divide-y">{expired.map(renderRow)}</ul>
+                </section>
+              ) : null}
+            </div>
           )}
         </CardContent>
       </Card>

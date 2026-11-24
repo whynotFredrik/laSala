@@ -7,6 +7,7 @@ import {
   renewalReminderDue,
   renewalThreshold,
   renewalWatchFor,
+  splitRenewalWatch,
 } from "./rules"
 
 describe("renewalThreshold", () => {
@@ -99,5 +100,33 @@ describe("renewalWatchFor", () => {
     const w = renewalWatchFor(plan(11, 12, "2026-11-26"), today)
     expect(w?.lowSessions).toBe(true)
     expect(w?.expiringSoon).toBe(true)
+  })
+})
+
+describe("splitRenewalWatch", () => {
+  const row = (id: string, daysLeft: number, remaining = 1) => ({
+    id,
+    watch: { daysLeft, remaining, lowSessions: true, expiringSoon: true },
+  })
+
+  it("lists running plans first, then the most recently expired", () => {
+    const { current, expired } = splitRenewalWatch([
+      row("expired-long-ago", -30),
+      row("ends-in-5", 5),
+      row("expired-yesterday", -1),
+      row("ends-today", 0),
+      row("expired-last-week", -7),
+      row("ends-in-5-fewer-left", 5, 0),
+    ])
+    expect(current.map((r) => r.id)).toEqual([
+      "ends-today",
+      "ends-in-5-fewer-left",
+      "ends-in-5",
+    ])
+    expect(expired.map((r) => r.id)).toEqual([
+      "expired-yesterday",
+      "expired-last-week",
+      "expired-long-ago",
+    ])
   })
 })

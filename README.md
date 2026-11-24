@@ -61,6 +61,7 @@ These are encoded as functions in `lib/booking/` and as constraints in `supabase
 - **Cancellation window:** at least 3 hours before session start
 - **Reschedule limit:** 3 reschedules per ISO week per member (cancellations do not count)
 - **Freeze:** 3–14 days per request, 14 days total per rolling 6 months, can start from tomorrow (studio date), plan end date is extended by the freeze duration, bookings inside the freeze are cancelled and none can be made. Admins can allocate freezes (from today) and override a member's remaining days for 6 months
+- **Studio closures:** admins pick closed days (holidays) on a calendar at `/admin/closures`. No sessions are generated and no booking can be made on a closed day; existing bookings are cancelled with the session refunded and the member notified. Plans are not extended
 
 ## Payments
 

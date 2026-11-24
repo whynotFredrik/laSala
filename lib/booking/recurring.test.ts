@@ -14,6 +14,9 @@ describe("skipReasonFor", () => {
       "noSessionsLeft",
     )
     expect(skipReasonFor("Membership frozen on session date")).toBe("frozen")
+    expect(skipReasonFor("Studio closed on session date")).toBe(
+      "studioClosed",
+    )
     expect(skipReasonFor("Admin only")).toBe("notAllowed")
     expect(skipReasonFor("permission denied for function")).toBe("notAllowed")
     expect(skipReasonFor("something else entirely")).toBe("unknown")

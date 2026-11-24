@@ -53,3 +53,41 @@ export function expiryDedupeKey(planId: string, days: number): string {
 export function planActivatedDedupeKey(planId: string): string {
   return `plan_activated:${planId}`
 }
+
+/** Admin "Reînnoiri" tab: who to talk to about the next plan. */
+export const RENEWAL_WATCH = {
+  /** Plans with this many sessions left (or fewer) are listed. */
+  MAX_SESSIONS_LEFT: 2,
+  /** Plans ending within this many days of today (inclusive) are listed. */
+  EXPIRY_DAYS: 7,
+} as const
+
+export type RenewalWatch = {
+  remaining: number
+  /** Days from `todayISO` to `end_date`; negative once it has passed. */
+  daysLeft: number
+  lowSessions: boolean
+  expiringSoon: boolean
+}
+
+/**
+ * Why an active plan belongs on the admin renewals list, or null when it
+ * does not: at most `MAX_SESSIONS_LEFT` sessions left, or `end_date`
+ * within `EXPIRY_DAYS` of today (an already-passed date counts).
+ * `todayISO` is the studio date, YYYY-MM-DD.
+ */
+export function renewalWatchFor(
+  plan: PlanLike,
+  todayISO: string,
+): RenewalWatch | null {
+  const remaining = remainingSessions(plan)
+  const daysLeft = Math.round(
+    (Date.parse(`${plan.end_date}T00:00:00Z`) -
+      Date.parse(`${todayISO}T00:00:00Z`)) /
+      86_400_000,
+  )
+  const lowSessions = remaining <= RENEWAL_WATCH.MAX_SESSIONS_LEFT
+  const expiringSoon = daysLeft <= RENEWAL_WATCH.EXPIRY_DAYS
+  if (!lowSessions && !expiringSoon) return null
+  return { remaining, daysLeft, lowSessions, expiringSoon }
+}

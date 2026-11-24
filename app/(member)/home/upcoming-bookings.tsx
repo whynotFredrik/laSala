@@ -17,6 +17,7 @@ import { isCancellable, nextSevenDays, isUnlocked } from "@/lib/booking/rules"
 import { trainerColors } from "@/lib/constants"
 import { createClient } from "@/lib/supabase/server"
 import type { Database } from "@/lib/supabase/database.types"
+import { loadClosedDates } from "@/lib/sessions/closures"
 
 type BookingRow = Database["public"]["Tables"]["bookings"]["Row"]
 type SessionRow = Database["public"]["Tables"]["sessions"]["Row"]
@@ -49,20 +50,24 @@ export async function UpcomingBookings({
     bookings.map((b) => b.sessions?.id).filter(Boolean) as string[],
   )
 
-  const { data: rawCandidates } = await supabase
-    .from("sessions")
-    .select(
-      "id, session_date, start_at, capacity, booked_count, unlock_at, trainer, classes(name_ro)",
-    )
-    .gte("session_date", firstDay)
-    .lte("session_date", lastDay)
-    .order("start_at", { ascending: true })
+  const [{ data: rawCandidates }, closed] = await Promise.all([
+    supabase
+      .from("sessions")
+      .select(
+        "id, session_date, start_at, capacity, booked_count, unlock_at, trainer, classes(name_ro)",
+      )
+      .gte("session_date", firstDay)
+      .lte("session_date", lastDay)
+      .order("start_at", { ascending: true }),
+    loadClosedDates(supabase, firstDay, lastDay),
+  ])
 
   const now = new Date()
   const candidates: CandidateSession[] = (rawCandidates ?? [])
     .filter(
       (s) =>
         !myBookedSessionIds.has(s.id) &&
+        !closed.has(s.session_date) &&
         new Date(s.start_at).getTime() > now.getTime() &&
         isUnlocked(s.unlock_at, now),
     )

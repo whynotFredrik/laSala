@@ -17,6 +17,7 @@ import { nextSevenDays, isUnlocked, studioDateISO } from "@/lib/booking/rules"
 import { requireUser } from "@/lib/auth/get-user"
 import { trainerColors, trainersForSex } from "@/lib/constants"
 import { getActivePlan } from "@/lib/plans/active"
+import { loadClosedDates } from "@/lib/sessions/closures"
 import { isPlanUsable } from "@/lib/plans/rules"
 import { createClient } from "@/lib/supabase/server"
 import type { Database } from "@/lib/supabase/database.types"
@@ -57,9 +58,9 @@ export default async function BookPage() {
     sessionsQuery = sessionsQuery.in("trainer", [...visibleTrainers])
   }
 
-  // The three reads are independent — run them in one round trip. The
-  // user's currently-booked session ids are used to disable those buttons.
-  const [plan, { data: sessionsRaw }, { data: myBookings }] =
+  // The reads are independent — run them in one round trip. The user's
+  // currently-booked session ids are used to disable those buttons.
+  const [plan, { data: sessionsRaw }, { data: myBookings }, closed] =
     await Promise.all([
       getActivePlan(supabase, user.id),
       sessionsQuery,
@@ -68,6 +69,7 @@ export default async function BookPage() {
         .select("session_id")
         .eq("user_id", user.id)
         .eq("status", "booked"),
+      loadClosedDates(supabase, firstDay, lastDay),
     ])
 
   // Can the member actually book? No plan, or an exhausted/expired one →
@@ -84,6 +86,8 @@ export default async function BookPage() {
   const byDay = new Map<string, SessionWithClass[]>()
   for (const day of days) byDay.set(day, [])
   for (const s of sessions) {
+    // A day closed after its sessions were generated keeps the rows.
+    if (closed.has(s.session_date)) continue
     byDay.get(s.session_date)?.push(s)
   }
 
@@ -119,6 +123,7 @@ export default async function BookPage() {
 
       {days.map((day) => {
         const list = byDay.get(day) ?? []
+        const closedReason = closed.has(day) ? closed.get(day) : undefined
         const date = parseISO(day)
         // Day heading is a calendar date (no TZ), so date-fns is fine here.
         const heading = formatStudio(date, "EEEE, d MMMM")
@@ -129,7 +134,11 @@ export default async function BookPage() {
               <CardTitle className="capitalize">{heading}</CardTitle>
             </CardHeader>
             <CardContent>
-              {list.length === 0 ? (
+              {closedReason !== undefined ? (
+                <p className="text-sm text-muted-foreground">
+                  {t("studioClosedDay", { reason: closedReason || "none" })}
+                </p>
+              ) : list.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
                   {t("noSessionsForDay")}
                 </p>

@@ -21,6 +21,7 @@ import {
   type SessionForCalendar,
 } from "@/lib/google/event-payload"
 import { planReconcile } from "@/lib/google/reconcile-plan"
+import { loadClosedDates } from "@/lib/sessions/closures"
 import { createServiceClient } from "@/lib/supabase/service"
 
 /**
@@ -160,7 +161,8 @@ function toSessionForCalendar(row: SessionRow): SessionForCalendar {
 /**
  * Push the given sessions to Google. Unchanged events (same content hash,
  * no previous error) are skipped unless `force`. Ids that no longer
- * resolve to a session but still have a mapping row get their event
+ * resolve to a session — or whose session falls on a day the studio is
+ * closed (migration 0036) — but still have a mapping row get their event
  * deleted.
  */
 export async function syncSessions(
@@ -175,13 +177,22 @@ export async function syncSessions(
 
   try {
     const service = createServiceClient()
-    const { data: sessions, error: sErr } = await service
+    const { data: loaded, error: sErr } = await service
       .from("sessions")
       .select(
-        "id, start_at, end_at, capacity, booked_count, trainer, classes(name_ro), bookings(status, profiles(full_name, email))",
+        "id, session_date, start_at, end_at, capacity, booked_count, trainer, classes(name_ro), bookings(status, profiles(full_name, email))",
       )
       .in("id", ids)
     if (sErr) throw new Error(`sessions load failed: ${sErr.message}`)
+
+    // A closed day's sessions stay in the table but must not be in the
+    // calendar: treat them as gone so their events are deleted below.
+    const dates = (loaded ?? []).map((s) => s.session_date).sort()
+    const closed =
+      dates.length > 0
+        ? await loadClosedDates(service, dates[0]!, dates[dates.length - 1]!)
+        : new Map<string, string | null>()
+    const sessions = (loaded ?? []).filter((s) => !closed.has(s.session_date))
 
     const { data: rows, error: rErr } = await service
       .from("calendar_events")

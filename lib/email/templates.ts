@@ -32,6 +32,14 @@ export type TemplatePropsMap = {
     date: string
     time: string
   }
+  studioClosure: {
+    name: string
+    /** "luni, 30 noiembrie" */
+    date: string
+    /** Times of the cancelled bookings, e.g. "18:00". */
+    time: string
+    reason: string | null
+  }
   bookingReschedule: {
     name: string
     className: string
@@ -132,6 +140,17 @@ export const TEMPLATES: {
       <p>Salut, ${escape(p.name)}!</p>
       <p>Ai anulat rezervarea pentru <strong>${escape(p.className)}</strong>, ${escape(p.date)} la ora ${escape(p.time)}.</p>
       <p>Sesiunea a fost reactivată în planul tău.</p>
+    `,
+    sender: "bookings",
+  }),
+
+  studioClosure: (p) => ({
+    subject: `Studio închis — ${p.date}`,
+    heading: "Studioul este închis în ziua rezervării tale",
+    body: `
+      <p>Salut, ${escape(p.name)}!</p>
+      <p>Studioul este închis <strong>${escape(p.date)}</strong>${p.reason ? ` (${escape(p.reason)})` : ""}, așa că rezervarea ta de la ora ${escape(p.time)} a fost anulată.</p>
+      <p>Sesiunea a fost returnată în abonamentul tău — o poți folosi în orice altă zi.</p>
     `,
     sender: "bookings",
   }),

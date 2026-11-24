@@ -20,6 +20,8 @@ function hrefFor(type: string, data: unknown): string | null {
     case "weekly_summary":
     case "pins_booked":
       return "/history"
+    case "studio_closed":
+      return "/book"
     default:
       return null
   }

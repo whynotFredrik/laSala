@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/card"
 import { buttonVariants } from "@/components/ui/button"
 import { formatStudio } from "@/lib/booking/format"
+import { studioDateISO } from "@/lib/booking/rules"
+import { loadClosedDates } from "@/lib/sessions/closures"
 import { createClient } from "@/lib/supabase/server"
 
 import { AdjustPlanForm } from "./adjust-plan-form"
@@ -103,7 +105,8 @@ export default async function AdminUserDetailPage({
   const fortnightIso = new Date(
     Date.now() + 14 * 24 * 60 * 60 * 1000,
   ).toISOString()
-  const [{ data: upcomingRaw }, { data: candidatesRaw }] = await Promise.all([
+  const [{ data: upcomingRaw }, { data: candidatesRaw }, closed] =
+    await Promise.all([
     supabase
       .from("bookings")
       .select(
@@ -115,10 +118,17 @@ export default async function AdminUserDetailPage({
       .order("start_at", { referencedTable: "sessions", ascending: true }),
     supabase
       .from("sessions")
-      .select("id, start_at, trainer, capacity, booked_count, classes(name_ro)")
+      .select(
+        "id, session_date, start_at, trainer, capacity, booked_count, classes(name_ro)",
+      )
       .gte("start_at", nowIso)
       .lte("start_at", fortnightIso)
       .order("start_at", { ascending: true }),
+    loadClosedDates(
+      supabase,
+      studioDateISO(),
+      studioDateISO(new Date(fortnightIso)),
+    ),
   ])
 
   const upcomingBookings = (upcomingRaw ?? [])
@@ -131,7 +141,9 @@ export default async function AdminUserDetailPage({
       trainer: b.sessions!.trainer ?? null,
     }))
 
-  const candidateSessions = (candidatesRaw ?? []).map((s) => ({
+  const candidateSessions = (candidatesRaw ?? [])
+    .filter((s) => !closed.has(s.session_date))
+    .map((s) => ({
     id: s.id,
     startAt: s.start_at,
     className: s.classes?.name_ro ?? null,

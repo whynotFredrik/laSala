@@ -39,6 +39,18 @@ export type TemplatePropsMap = {
     /** Times of the cancelled bookings, e.g. "18:00". */
     time: string
     reason: string | null
+    /** Set when the member's active plan was extended for the closure. */
+    extension: { days: number; endDate: string } | null
+  }
+  /** Closure that extended a plan, for members with no booking those days. */
+  planExtendedClosure: {
+    name: string
+    /** "luni, 30 noiembrie, marți, 1 decembrie" */
+    dates: string
+    reason: string | null
+    days: number
+    /** "3 decembrie 2026" */
+    endDate: string
   }
   bookingReschedule: {
     name: string
@@ -116,6 +128,20 @@ export type TemplatePropsMap = {
 
 export type TemplateId = keyof TemplatePropsMap
 
+const RO_PLURAL = new Intl.PluralRules("ro")
+
+/** "o zi" / "3 zile" / "20 de zile" */
+function daysLabel(days: number): string {
+  switch (RO_PLURAL.select(days)) {
+    case "one":
+      return "o zi"
+    case "few":
+      return `${days} zile`
+    default:
+      return `${days} de zile`
+  }
+}
+
 export const TEMPLATES: {
   [K in TemplateId]: (props: TemplatePropsMap[K]) => Rendered
 } = {
@@ -151,6 +177,18 @@ export const TEMPLATES: {
       <p>Salut, ${escape(p.name)}!</p>
       <p>Studioul este închis <strong>${escape(p.date)}</strong>${p.reason ? ` (${escape(p.reason)})` : ""}, așa că rezervarea ta de la ora ${escape(p.time)} a fost anulată.</p>
       <p>Sesiunea a fost returnată în abonamentul tău — o poți folosi în orice altă zi.</p>
+      ${p.extension ? `<p>Abonamentul tău a fost prelungit cu ${daysLabel(p.extension.days)}, până la <strong>${escape(p.extension.endDate)}</strong>.</p>` : ""}
+    `,
+    sender: "bookings",
+  }),
+
+  planExtendedClosure: (p) => ({
+    subject: `Abonament prelungit cu ${daysLabel(p.days)}`,
+    heading: "Abonamentul tău a fost prelungit",
+    body: `
+      <p>Salut, ${escape(p.name)}!</p>
+      <p>Studioul este închis <strong>${escape(p.dates)}</strong>${p.reason ? ` (${escape(p.reason)})` : ""}.</p>
+      <p>Ca să nu pierzi aceste zile, abonamentul tău a fost prelungit cu ${daysLabel(p.days)}, până la <strong>${escape(p.endDate)}</strong>.</p>
     `,
     sender: "bookings",
   }),

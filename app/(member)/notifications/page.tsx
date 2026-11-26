@@ -16,6 +16,8 @@ function hrefFor(type: string, data: unknown): string | null {
     case "expiration_warning":
       return d.tier_id ? `/plans?tier=${d.tier_id}` : "/plans"
     case "plan_activated":
+    case "plan_extended":
+    case "plan_extension_reverted":
       return "/home"
     case "weekly_summary":
     case "pins_booked":

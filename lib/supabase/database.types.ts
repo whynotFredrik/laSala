@@ -1135,6 +1135,49 @@ export type Database = {
           },
         ]
       }
+      studio_closure_extensions: {
+        Row: {
+          closed_on: string
+          created_at: string
+          plan_id: string
+          user_id: string
+        }
+        Insert: {
+          closed_on: string
+          created_at?: string
+          plan_id: string
+          user_id: string
+        }
+        Update: {
+          closed_on?: string
+          created_at?: string
+          plan_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_closure_extensions_closed_on_fkey"
+            columns: ["closed_on"]
+            isOneToOne: false
+            referencedRelation: "studio_closures"
+            referencedColumns: ["closed_on"]
+          },
+          {
+            foreignKeyName: "studio_closure_extensions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "studio_closure_extensions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       weight_logs: {
         Row: {
           created_at: string
@@ -1181,25 +1224,7 @@ export type Database = {
       }
       admin_close_studio_days: {
         Args: { p_dates: string[]; p_reason?: string | null }
-        Returns: {
-          booked_at: string
-          cancelled_at: string | null
-          id: string
-          is_grace: boolean
-          iso_week: string
-          notes: string | null
-          reschedule_count_iso_week: number
-          rescheduled_at: string | null
-          session_id: string
-          status: Database["public"]["Enums"]["booking_status"]
-          user_id: string
-        }[]
-        SetofOptions: {
-          from: "*"
-          to: "bookings"
-          isOneToOne: false
-          isSetofReturn: true
-        }
+        Returns: Json
       }
       admin_freeze_membership: {
         Args: {
@@ -1266,10 +1291,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      admin_reopen_studio_day: {
-        Args: { p_date: string }
-        Returns: undefined
-      }
+      admin_reopen_studio_day: { Args: { p_date: string }; Returns: Json }
       admin_set_freeze_remaining: {
         Args: { p_remaining_days: number; p_user_id: string }
         Returns: {
@@ -1415,6 +1437,21 @@ export type Database = {
           to: "freeze_periods"
           isOneToOne: true
           isSetofReturn: false
+        }
+      }
+      extend_plans_for_closed_day: {
+        Args: { p_day: string }
+        Returns: {
+          closed_on: string
+          created_at: string
+          plan_id: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "studio_closure_extensions"
+          isOneToOne: false
+          isSetofReturn: true
         }
       }
       freeze_days_remaining: { Args: { p_user_id: string }; Returns: number }

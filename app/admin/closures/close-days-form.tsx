@@ -45,7 +45,11 @@ export default function CloseDaysForm({
   useEffect(() => {
     if (state.status === "ok") {
       toast.success(
-        t("closed", { days: state.days, cancelled: state.cancelled }),
+        t("closed", {
+          days: state.days,
+          cancelled: state.cancelled,
+          extended: state.extended,
+        }),
       )
       setSelected([])
       setReason("")

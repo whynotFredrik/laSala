@@ -14,6 +14,8 @@ export type NotificationType =
   | "weekly_summary"
   | "pins_booked"
   | "studio_closed"
+  | "plan_extended"
+  | "plan_extension_reverted"
   | "expiration_warning"
   | "admin_plan_request"
   | "admin_expiry_digest"

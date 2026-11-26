@@ -15,10 +15,15 @@ import { createClient } from "@/lib/supabase/server"
 import CloseDaysForm from "./close-days-form"
 import ReopenDayButton from "./reopen-day-button"
 
+// Closing days notifies (and emails) every member whose plan it extends,
+// one at a time after the response; give the action room to finish.
+export const maxDuration = 60
+
 /**
  * Studio closures (holidays): pick days on a calendar to close the studio,
  * see the upcoming closed days and reopen one. Rules live in migration
- * 0036 (`admin_close_studio_days`, `admin_reopen_studio_day`).
+ * 0036 (`admin_close_studio_days`, `admin_reopen_studio_day`); 0037 makes
+ * closing extend active plans and reopening take the extension back.
  */
 export default async function AdminClosuresPage() {
   const supabase = await createClient()

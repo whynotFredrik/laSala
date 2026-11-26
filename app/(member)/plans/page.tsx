@@ -9,8 +9,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { PendingRequestCard } from "@/components/member/pending-request-card"
 import { requireUser } from "@/lib/auth/get-user"
 import { getActivePlan } from "@/lib/plans/active"
+import { getPendingRequest } from "@/lib/plans/pending"
+import { quotePlan, toQuotePlan } from "@/lib/plans/quote"
+import { remainingSessions } from "@/lib/plans/rules"
 import {
   isRenewalOnTime,
   isStreakTier,
@@ -18,6 +22,7 @@ import {
   streakDiscountRon,
   toStreakRef,
 } from "@/lib/plans/streak"
+import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/server"
 
 import { PayInfoCard } from "./pay-info-card"
@@ -33,7 +38,7 @@ export default async function PlansPage({
   const t = await getTranslations("plans")
   const { tier: highlightTier } = await searchParams
 
-  const [{ data: tiers }, { data: pending }, active] =
+  const [{ data: tiers }, pending, active] =
     await Promise.all([
       supabase
         .from("plan_tiers")
@@ -42,16 +47,12 @@ export default async function PlansPage({
         )
         .eq("is_active", true)
         .order("display_order", { ascending: true }),
-      supabase
-        .from("plan_requests")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("status", "pending")
-        .maybeSingle(),
+      getPendingRequest(supabase, user.id),
       getActivePlan(supabase, user.id),
     ])
 
   const hasPending = !!pending
+  const activeQuoteRef = toQuotePlan(active)
   // Pick the price column for the member's sex. Falls back to male price
   // for the rare case a member's sex is somehow unset (legacy accounts).
   const sex = (profile.sex as "male" | "female" | null) ?? "male"
@@ -73,6 +74,31 @@ export default async function PlansPage({
           {active ? t("subtitleRenew") : t("subtitle")}
         </p>
       </header>
+
+      {pending ? (
+        <PendingRequestCard
+          request={pending}
+          sex={profile.sex}
+          activePlan={activeQuoteRef}
+        />
+      ) : null}
+
+      {active ? (
+        <Card>
+          <CardHeader>
+            <CardDescription>{t("currentPlanTitle")}</CardDescription>
+            <CardTitle>{active.plan_tiers?.name_ro ?? "Plan"}</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground">
+            {t("currentPlanBody", {
+              remaining: remainingSessions(active),
+              date: format(new Date(active.end_date), "d MMMM yyyy", {
+                locale: ro,
+              }),
+            })}
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card>
         <CardHeader>
@@ -96,25 +122,47 @@ export default async function PlansPage({
         </CardContent>
       </Card>
 
+      {active ? (
+        <h2 className="text-lg font-semibold tracking-tight">
+          {t("chooseRenewalTitle")}
+        </h2>
+      ) : null}
+
       <div className="grid gap-3 sm:grid-cols-2">
         {(tiers ?? []).map((tier) => {
-          const totalSessions = tier.sessions_per_month * tier.duration_months
-          const price = Number(
-            sex === "female" ? tier.price_female_ron : tier.price_male_ron,
-          )
           // Streak discount applies to monthly tiers only; 6-month promo
           // packages already have their discount baked into the price.
-          const discount = isStreakTier(tier.category) ? nextDiscount : 0
-          const finalPrice = Math.max(price - discount, 0)
+          const quote = quotePlan(tier, sex, activeQuoteRef)
+          const {
+            basePrice: price,
+            discount,
+            price: finalPrice,
+            tierSessions: totalSessions,
+          } = quote
+          const isCurrent = active?.tier_id === tier.id
+          const summary = `${totalSessions} ${t("sessionsTotal")} · ${
+            tier.duration_months
+          } ${tier.duration_months === 1 ? t("month") : t("months")}`
           return (
-            <Card key={tier.id}>
+            <Card
+              key={tier.id}
+              id={`tier-${tier.id}`}
+              className={cn(
+                "scroll-mt-24",
+                (highlightTier === tier.id || isCurrent) &&
+                  "ring-2 ring-primary/60",
+              )}
+            >
               <CardHeader>
-                <CardTitle>{tier.name_ro}</CardTitle>
-                <CardDescription>
-                  {totalSessions} {t("sessionsTotal")} ·{" "}
-                  {tier.duration_months}{" "}
-                  {tier.duration_months === 1 ? t("month") : t("months")}
-                </CardDescription>
+                <div className="flex flex-wrap items-center gap-2">
+                  <CardTitle>{tier.name_ro}</CardTitle>
+                  {isCurrent ? (
+                    <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                      {t("currentTierBadge")}
+                    </span>
+                  ) : null}
+                </div>
+                <CardDescription>{summary}</CardDescription>
               </CardHeader>
               <CardContent className="flex items-center justify-between">
                 <div>
@@ -135,6 +183,9 @@ export default async function PlansPage({
                 </div>
                 <RequestPlanButton
                   tierId={tier.id}
+                  tierName={tier.name_ro}
+                  tierSummary={summary}
+                  quote={quote}
                   hasPending={hasPending}
                   isRenewal={!!active}
                   highlight={highlightTier === tier.id}

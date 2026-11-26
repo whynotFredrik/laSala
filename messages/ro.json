@@ -238,7 +238,6 @@
     "subtitle": "Alege un plan și apasă \"Solicită\". Un administrator îl va activa după primirea plății.",
     "subtitleRenew": "Ai un plan activ. Poți solicita următorul de pe acum: sesiunile rămase se adaugă la cel nou, iar valabilitatea se prelungește de la data de expirare curentă.",
     "renew": "Reînnoiește",
-    "renewDialogBody": "După plată, sesiunile rămase se adaugă la noul plan și valabilitatea se prelungește. Cum preferi să plătești? (poți schimba la studio)",
     "sessionsTotal": "sesiuni total",
     "month": "lună",
     "months": "luni",
@@ -249,8 +248,7 @@
     "streakNext": "Ești în streak: plătește până la {date} și intri în luna {month} — abonamentul lunar costă cu {discount} RON mai puțin.",
     "streakDiscountBadge": "−{discount} RON streak",
     "streakPromo": "Ești pe o promoție: promoțiile nu intră în streak. Streak-ul începe cu primul abonament lunar plătit la timp.",
-    "requestDialogTitle": "Solicită plan",
-    "requestDialogBody": "Cum preferi să plătești? (poți schimba la studio)",
+    "requestDialogTitle": "Solicită: {plan}",
     "preferredPaymentMethod": "Metodă preferată",
     "selectPaymentMethod": "Alege metoda",
     "bankTransfer": "Transfer bancar",
@@ -263,7 +261,30 @@
     "payInfoTitle": "Plată",
     "payInfoBody": "Plata se face fizic la studio, cu cardul (POS) sau cash. Confirmăm activarea după primirea plății.",
     "inPersonTitle": "La studio",
-    "inPersonBody": "Vino la recepție în programul studio-ului — alegi metoda care îți convine."
+    "inPersonBody": "Vino la recepție în programul studio-ului — alegi metoda care îți convine.",
+    "renewDialogTitle": "Reînnoiește cu: {plan}",
+    "chooseOtherPlan": "Alege alt plan",
+    "currentPlanTitle": "Planul tău curent",
+    "currentPlanBody": "{remaining} sesiuni rămase · expiră pe {date}",
+    "currentTierBadge": "Planul actual",
+    "chooseRenewalTitle": "Alege cu ce reînnoiești"
+  },
+  "planQuote": {
+    "base": "Preț abonament",
+    "discount": "Reducere streak (luna {month})",
+    "total": "De plată la studio",
+    "merge": "Cele {carried} sesiuni rămase se adaugă: vei avea {total} sesiuni, valabile până pe {date}.",
+    "mergeNoCarry": "Vei avea {total} sesiuni, valabile până pe {date}.",
+    "payByDiscount": "Plătește până pe {date} ca să păstrezi reducerea și sesiunile rămase.",
+    "payBy": "Plătește până pe {date} ca să păstrezi sesiunile rămase.",
+    "fresh": "Primești {total} sesiuni; planul pornește din ziua plății."
+  },
+  "pendingRequest": {
+    "title": "Cerere în curs",
+    "body": "Ai solicitat {plan} pe {date}. Planul se activează după plată.",
+    "unknownPlan": "un abonament",
+    "howToPay": "Plătești la recepție ({address}), cu cardul sau numerar.",
+    "preferredMethod": "Ai ales: {method}."
   },
   "plansErrors": {
     "invalid_input": "Date invalide.",

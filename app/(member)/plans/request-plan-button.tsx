@@ -22,6 +22,8 @@ import {
 } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { PlanQuoteSummary } from "@/components/member/plan-quote-summary"
+import type { PlanQuote } from "@/lib/plans/quote"
 
 import { requestPlanAction } from "./actions"
 
@@ -30,16 +32,25 @@ type PaymentMethod = "pos" | "cash"
 /**
  * "Request plan" button. A member may request a plan while another one is
  * active (an on-time renewal merges into the current plan on approval);
- * only a pending request blocks a new one. `highlight` (from
- * `/plans?tier=<id>`, used by renewal reminders) opens the dialog on load.
+ * only a pending request blocks a new one. The dialog shows what the
+ * member will pay (streak discount included) and what the plan will hold
+ * before they submit. `highlight` (from `/plans?tier=<id>`, used by
+ * renewal reminders) scrolls the tier's card into view — it does not open
+ * the dialog, so the member sees the other plans first.
  */
 export function RequestPlanButton({
   tierId,
+  tierName,
+  tierSummary,
+  quote,
   hasPending,
   isRenewal,
   highlight = false,
 }: {
   tierId: string
+  tierName: string
+  tierSummary: string
+  quote: PlanQuote
   hasPending: boolean
   isRenewal: boolean
   highlight?: boolean
@@ -54,8 +65,11 @@ export function RequestPlanButton({
   const disabled = hasPending
 
   useEffect(() => {
-    if (highlight && !disabled) setOpen(true)
-  }, [highlight, disabled])
+    if (!highlight) return
+    document
+      .getElementById(`tier-${tierId}`)
+      ?.scrollIntoView({ block: "center", behavior: "smooth" })
+  }, [highlight, tierId])
 
   const submit = () => {
     start(async () => {
@@ -91,13 +105,17 @@ export function RequestPlanButton({
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t("requestDialogTitle")}</DialogTitle>
-            <DialogDescription>
-              {isRenewal ? t("renewDialogBody") : t("requestDialogBody")}
-            </DialogDescription>
+            <DialogTitle>
+              {isRenewal
+                ? t("renewDialogTitle", { plan: tierName })
+                : t("requestDialogTitle", { plan: tierName })}
+            </DialogTitle>
+            <DialogDescription>{tierSummary}</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
+            <PlanQuoteSummary quote={quote} />
+
             <div className="space-y-2">
               <Label htmlFor="paymentMethod">
                 {t("preferredPaymentMethod")}
@@ -134,7 +152,7 @@ export function RequestPlanButton({
               onClick={() => setOpen(false)}
               disabled={pending}
             >
-              {t("cancel")}
+              {t("chooseOtherPlan")}
             </Button>
             <Button type="button" onClick={submit} disabled={pending}>
               {t("submitRequest")}

@@ -2,8 +2,11 @@ import Link from "next/link"
 import { getTranslations } from "next-intl/server"
 
 import { buttonVariants } from "@/components/ui/button"
+import { PendingRequestCard } from "@/components/member/pending-request-card"
 import { requireUser } from "@/lib/auth/get-user"
 import { getActivePlan } from "@/lib/plans/active"
+import { getPendingRequest } from "@/lib/plans/pending"
+import { toQuotePlan } from "@/lib/plans/quote"
 import { createClient } from "@/lib/supabase/server"
 
 import { PlanCard } from "./plan-card"
@@ -18,21 +21,16 @@ export default async function HomePage() {
   const supabase = await createClient()
   const t = await getTranslations("home")
 
-  // Independent reads, one round trip: active plan and whether a renewal
-  // request is already pending (drive the renewal banner), plus the next 3
+  // Independent reads, one round trip: active plan and the pending plan
+  // request, if any (renewal banner + "request in progress" card), plus the next 3
   // upcoming bookings (status = booked AND session start in the future).
   // `!inner` makes the foreign-table filter actually exclude rows whose
   // joined session is in the past — without it, PostgREST keeps the booking
   // row and just nulls out the session.
-  const [plan, { data: pendingRequest }, { data: bookings }] =
+  const [plan, pendingRequest, { data: bookings }] =
     await Promise.all([
       getActivePlan(supabase, profile.id),
-      supabase
-        .from("plan_requests")
-        .select("id")
-        .eq("user_id", profile.id)
-        .eq("status", "pending")
-        .maybeSingle(),
+      getPendingRequest(supabase, profile.id),
       supabase
         .from("bookings")
         .select(
@@ -57,6 +55,14 @@ export default async function HomePage() {
       </header>
 
       <RenewalBanner plan={plan} hasPendingRequest={!!pendingRequest} />
+
+      {pendingRequest ? (
+        <PendingRequestCard
+          request={pendingRequest}
+          sex={profile.sex}
+          activePlan={toQuotePlan(plan)}
+        />
+      ) : null}
 
       <PlanCard plan={plan} />
 

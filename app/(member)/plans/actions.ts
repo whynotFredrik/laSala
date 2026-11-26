@@ -8,11 +8,7 @@ import { sendEmail } from "@/lib/email/send"
 import { notifyAdmins } from "@/lib/notifications/admins"
 import { notificationCopy } from "@/lib/notifications/notify"
 import { getActivePlan } from "@/lib/plans/active"
-import {
-  nextStreakMonth,
-  streakDiscountRon,
-  toStreakRef,
-} from "@/lib/plans/streak"
+import { quotePlan, toQuotePlan } from "@/lib/plans/quote"
 import { createClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/service"
 
@@ -76,7 +72,9 @@ export async function requestPlanAction(
   const [{ data: tier }, activePlan] = await Promise.all([
     service
       .from("plan_tiers")
-      .select("name_ro, category, price_male_ron, price_female_ron")
+      .select(
+        "name_ro, category, sessions_per_month, duration_months, price_male_ron, price_female_ron",
+      )
       .eq("id", parsed.data.tierId)
       .maybeSingle(),
     getActivePlan(service, user.id),
@@ -84,18 +82,11 @@ export async function requestPlanAction(
 
   if (tier) {
     const planName = tier.name_ro
-    // Pick the price column for the requester's sex; fall back to male
-    // price for legacy accounts where sex is unset.
-    const basePrice = Number(
-      profile.sex === "female" ? tier.price_female_ron : tier.price_male_ron,
-    )
     // Quote the streak-discounted price the member will pay if they settle
-    // before their current plan expires. The authoritative amount is decided
-    // at approval time in `approve_plan_request`.
-    const discount = streakDiscountRon(
-      nextStreakMonth(toStreakRef(activePlan), tier.category),
-    )
-    const price = Math.max(basePrice - discount, 0)
+    // before their current plan expires — the same quote the dialog and the
+    // pending-request card show. The authoritative amount is decided at
+    // approval time in `approve_plan_request`.
+    const { price } = quotePlan(tier, profile.sex, toQuotePlan(activePlan))
     const recipientName = profile.full_name ?? profile.email
 
     // 1. User ack
